@@ -1,8 +1,8 @@
 # py-goratschin
-An UCI "chess engine" that combines the power of Lc0 and Stockfish.
+An UCI "chess engine" that combines the power of Lc0 and Stockfish - or any two other engines, you like.
 
 The code borrows heavily from the project [CombiChess](https://github.com/tom0334/CombiChess).
-Many Thanks to Tom Friederich for this work!
+Many Thanks to Tom Friederich for his work!
 
 GoratschinChess a "chess engine" that supports the UCI chess protocol and combines 2 engines (called 'boss' and 'clerk', respectively) into one. It works by asking the engines what they think the best move is for a given position, and then applying some logic to determine what move to actually do.
 
@@ -15,6 +15,8 @@ The rules that it uses are fairly simple:
   * if the engines say something else, and the score of the clerk is better than that of the boss by a margin 'cp' (see self.score_margin in code) do the clerk's move. The default margin is 0.5 centipawns.
   
   * Else, always listen to the 'boss engine'. 
+  
+'Goratschin' is the name of a double-headed figure from the german sci-fi series "Perry Rhodan".
   
 
 ## Using GoratschinChess
