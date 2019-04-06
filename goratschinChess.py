@@ -368,10 +368,10 @@ class GoratschinChess:
     def printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
         printAndFlush("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
-                       + " white win/draw/loss percentage: {:2.1f}% W {:2.1f}% D {:2.1f}% L".format(winBoss, drawBoss, lossBoss))
+                       + " white {:2.1f}% win {:2.1f}% draw {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
         winClerk, drawClerk, lossClerk = get_win_draw_loss_percentages(self._scores_white[1])
         printAndFlush("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
-                      + " white win/draw/loss percentage: {:2.1f}% W {:2.1f}% D {:2.1f}% L".format(winClerk, drawClerk, lossClerk))
+                      + " white {:2.1f}% win {:2.1f}% draw {:2.1f}% loss".format(winClerk, drawClerk, lossClerk))
         printAndFlush("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
         totalSum = self.listenedTo[0] + self.listenedTo[1] 
         bossSum = self.listenedTo[0] 
