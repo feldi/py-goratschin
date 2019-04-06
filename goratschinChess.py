@@ -1,17 +1,14 @@
+import asyncio
 import os
 import sys
-import asyncio
 
 from chess import Move
-
-import chess.engine
 from chess.engine import PovScore
-from math import exp
+import chess.engine
+
 
 # This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
 # Please go to launcher.py This file also lets you change what engines GoratschinChess uses.
-
-
 class GoratschinChess:
     # after a stop command, ignore the finish callback. See onFinished.
     _canceled = False
@@ -114,10 +111,10 @@ class GoratschinChess:
 #                     loop.close()
 
             elif userCommand.startswith("position"):
-                self.handlePosition(userCommand)
+                self._handlePosition(userCommand)
 
             elif userCommand.startswith("endg"):   
-                self.handlePosition("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
+                self._handlePosition("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
                 
             elif userCommand.startswith("tb"):  
                 options = {}    
@@ -127,10 +124,10 @@ class GoratschinChess:
                 self._engines[1].configure(options)
                     
             elif userCommand.startswith("mw3"): 
-                self.handlePosition("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
+                self._handlePosition("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
                 
             elif userCommand.startswith("mb3"): 
-                self.handlePosition("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
+                self._handlePosition("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
                                     
             elif userCommand == "quit":
                 for en in self._engines:
@@ -197,12 +194,12 @@ class GoratschinChess:
             if info is None:
                 exitLoop = True
             elif 'currmove' not in info:
-                text = self.make_uci_info_from_dict(info)
+                text = self._make_uci_info_from_dict(info)
                 ## printAndFlush("info string engine " + str(index) + " " + self.engineFileNames[index] + " ")
                 printAndFlush("info " + text)
             await asyncio.sleep(0)            
             
-        self.decide(index, last_info)
+        self._decide(index, last_info)
                         
     async def _check_results(self):
         tasks = []
@@ -212,7 +209,7 @@ class GoratschinChess:
         tasks.append(self._check_result(1))
         await asyncio.gather(*tasks)
              
-    def decide(self, index, info):
+    def _decide(self, index, info):
         boss = 0
         clerk = 1
      
@@ -297,7 +294,7 @@ class GoratschinChess:
             printAndFlush("info string dont know best move yet")
             return
 
-        self.printStats()
+        self._printStats()
 
         self._canceled = True
         # stop remaining engines
@@ -308,7 +305,7 @@ class GoratschinChess:
 
     # inverse of chess.emgine.parse_uci_info
     # make uci info string from dictionary
-    def make_uci_info_from_dict(self, kv_dict):
+    def _make_uci_info_from_dict(self, kv_dict):
         result = []
         for i,j in kv_dict.items():
             if isinstance(j, int):
@@ -332,7 +329,7 @@ class GoratschinChess:
         return ' '.join(result) 
 
     # handle UCI position command
-    def handlePosition(self, positionInput):
+    def _handlePosition(self, positionInput):
         words = positionInput.split()
         # if this is not true, it is not a position command
         assert words[0] == "position"
@@ -365,7 +362,7 @@ class GoratschinChess:
         # printAndFlush(self.board)
 
     # prints stats on how often was listened to boss and how often to clerk
-    def printStats(self):
+    def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
         printAndFlush("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
                        + " white {:2.1f}% win {:2.1f}% draw {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
@@ -382,6 +379,7 @@ class GoratschinChess:
 
 
 # UTILS
+
 # This function flushes stdout after writing so the UCI GUI sees it
 def printAndFlush(text):
     print(text, flush=True)
