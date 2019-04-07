@@ -1,6 +1,7 @@
 import asyncio
 import os
 import sys
+import math
 
 from chess import Move
 from chess.engine import PovScore
@@ -42,7 +43,7 @@ class GoratschinChess:
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
         self.score_margin = 0.5 # in centipawns
-        printAndFlush("GoratschinChess 1.0 by P. Feldtmann based on CombiChess by T. Friederich")
+        print_and_flush("GoratschinChess 1.0 by P. Feldtmann based on CombiChess by T. Friederich")
 
     # This starts GoratschinChess.
     def start(self):
@@ -75,12 +76,12 @@ class GoratschinChess:
 
             userCommand = input()
 
-            # printAndFlush("info string cmd: " + userCommand)
+            # print_and_flush("info string cmd: " + userCommand)
             
             if userCommand == "uci":
-                printAndFlush("id name Goratschin")
-                printAndFlush("id author Peter Feldtmann")
-                printAndFlush("uciok")
+                print_and_flush("id name Goratschin")
+                print_and_flush("id author Peter Feldtmann")
+                print_and_flush("uciok")
 
             elif userCommand.startswith("setoption name"):
                 # Skip button type options
@@ -94,7 +95,7 @@ class GoratschinChess:
                     engine.configure(options)
                 
             elif userCommand == "isready":
-                printAndFlush("readyok")
+                print_and_flush("readyok")
 
             elif userCommand.startswith("go"):
                 parts = userCommand.split(" ")
@@ -102,7 +103,7 @@ class GoratschinChess:
                 for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes"):
                     if command in parts:
                         go_commands[command] = parts[parts.index(command) + 1]
-                self._startEngines(go_commands)
+                self._start_engines(go_commands)
                 ##self._check_results()
                 loop = asyncio.get_event_loop()
 #                 try:
@@ -111,10 +112,10 @@ class GoratschinChess:
 #                     loop.close()
 
             elif userCommand.startswith("position"):
-                self._handlePosition(userCommand)
+                self._handle_position(userCommand)
 
             elif userCommand.startswith("endg"):   
-                self._handlePosition("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
+                self._handle_position("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
                 
             elif userCommand.startswith("tb"):  
                 options = {}    
@@ -124,10 +125,10 @@ class GoratschinChess:
                 self._engines[1].configure(options)
                     
             elif userCommand.startswith("mw3"): 
-                self._handlePosition("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
+                self._handle_position("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
                 
             elif userCommand.startswith("mb3"): 
-                self._handlePosition("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
+                self._handle_position("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
                                     
             elif userCommand == "quit":
                 for en in self._engines:
@@ -139,9 +140,9 @@ class GoratschinChess:
                 for en in self._engines:
                     en.quit()
             else:
-                printAndFlush("unknown command")
+                print_and_flush("unknown command")
 
-    def _startEngine(self, index, cmds):
+    def _start_engine(self, index, cmds):
         engine = self._engines[index]
         ##engine.ucinewgame()
         #engine.position(self.board)
@@ -169,21 +170,21 @@ class GoratschinChess:
             )
               
         self._results[index] = engine.analysis(self.board, limit)
-        ## printAndFlush(self._results[index])
+        ## print_and_flush(self._results[index])
              
         engineName = self.engineFileNames[index]
         if index == 0:
-            printAndFlush("info string started engine 0 " + engineName + " as boss " + str(limit))
+            print_and_flush("info string started engine 0 " + engineName + " as boss " + str(limit))
         else:
-            printAndFlush("info string started engine 1 " + engineName + " as clerk " + str(limit))
+            print_and_flush("info string started engine 1 " + engineName + " as clerk " + str(limit))
 
-    def _startEngines(self, go_commands):
+    def _start_engines(self, go_commands):
         self._moves = [None, None]
         self._scores = [None, None]
         self._canceled = False
 
-        self._startEngine(1, go_commands)
-        self._startEngine(0, go_commands)
+        self._start_engine(1, go_commands)
+        self._start_engine(0, go_commands)
         
     async def _check_result(self, index):
         info = None
@@ -195,8 +196,8 @@ class GoratschinChess:
                 exitLoop = True
             elif 'currmove' not in info:
                 text = self._make_uci_info_from_dict(info)
-                ## printAndFlush("info string engine " + str(index) + " " + self.engineFileNames[index] + " ")
-                printAndFlush("info " + text)
+                ## print_and_flush("info string engine " + str(index) + " " + self.engineFileNames[index] + " ")
+                print_and_flush("info " + text)
             await asyncio.sleep(0)            
             
         self._decide(index, last_info)
@@ -222,7 +223,7 @@ class GoratschinChess:
         score = povScore.pov(self.board.turn)
         cp = score.score()
         
-        ## printAndFlush("info string pov score " + str(cp))
+        ## print_and_flush("info string pov score " + str(cp))
         
         # correct score if mating
         if score.is_mate():
@@ -242,18 +243,18 @@ class GoratschinChess:
             
         self._scores_white[index] = cpWhite
 
-        printAndFlush("info string eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
+        print_and_flush("info string eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
 
         # set the move in the found moves
         self._moves[index] = engineMove
         
 #         if score.is_mate():
 #             if index == boss:
-#                 printAndFlush("info string boss detected mate, stop")
+#                 print_and_flush("info string boss detected mate, stop")
 #                 self.listenedTo[boss] += 1
 #                 bestMove = self._moves[boss]
 #             else:
-#                 printAndFlush("info string clerk detected mate, stop")
+#                 print_and_flush("info string clerk detected mate, stop")
 #                 self.listenedTo[clerk] += 1
 #                 bestMove = self._moves[clerk]
 #             for info in self._results[index]: 
@@ -261,7 +262,7 @@ class GoratschinChess:
             
         # if engine 0 and 1 are done, and they agree on a move, do that move
         if self._moves[boss] is not None and self._moves[boss] == self._moves[clerk]:
-            printAndFlush("info string boss and clerk agree, listening to boss")
+            print_and_flush("info string boss and clerk agree, listening to boss")
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
@@ -271,27 +272,27 @@ class GoratschinChess:
             diff = self._scores[clerk] - self._scores[boss]
                        
             if diff >= self.score_margin:
-                printAndFlush("info string listening to stronger clerk")
+                print_and_flush("info string listening to stronger clerk")
                 self.listenedTo[clerk] += 1
                 bestMove = self._moves[clerk]
             elif diff > 0:
-                printAndFlush("info string listening to boss, clerk is stronger, but not enough")
+                print_and_flush("info string listening to boss, clerk is stronger, but not enough")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
             else:
-                printAndFlush("info string listening to boss, clerk is not stronger")
+                print_and_flush("info string listening to boss, clerk is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
 
         # all engines are done and they dont agree. Listen to boss
         elif None not in self._moves:
-            printAndFlush("info string listening to boss, engines dont agree")
+            print_and_flush("info string listening to boss, engines dont agree")
             self.listenedTo[boss] += 1
             bestMove = self._moves[boss]
             
         # we dont know our best move yet
         else:
-            printAndFlush("info string dont know best move yet")
+            print_and_flush("info string dont know best move yet")
             return
 
         self._printStats()
@@ -301,7 +302,7 @@ class GoratschinChess:
 #         for engine in self._engines:
 #             engine.stop()
 
-        printAndFlush("bestmove " + str(bestMove))
+        print_and_flush("bestmove " + str(bestMove))
 
     # inverse of chess.emgine.parse_uci_info
     # make uci info string from dictionary
@@ -324,12 +325,12 @@ class GoratschinChess:
                         result.append('%s' % m.uci())        
             else:
                 result.append("%s '%s'" % (i,j))
-                ## printAndFlush(i + " is " + type(j).__name__)
+                ## print_and_flush(i + " is " + type(j).__name__)
         
         return ' '.join(result) 
 
     # handle UCI position command
-    def _handlePosition(self, positionInput):
+    def _handle_position(self, positionInput):
         words = positionInput.split()
         # if this is not true, it is not a position command
         assert words[0] == "position"
@@ -342,7 +343,7 @@ class GoratschinChess:
                     fen, moves = " ".join(rest[:6]), rest[7:]
                     self.board.set_fen(fen)
                     for move in moves:
-                        printAndFlush("Adding " + move + " to stack")
+                        print_and_flush("Adding " + move + " to stack")
                         self.board.push_uci(move)
                 else:
                     self.board.set_fen(rest)
@@ -350,13 +351,13 @@ class GoratschinChess:
             elif words[1] == "startpos":
                 self.board.reset()
                 for move in words[3:]:  # skip the first two words : 'position' and 'startpos'
-                    printAndFlush("Adding " + move + " to stack")
+                    print_and_flush("Adding " + move + " to stack")
                     self.board.push_uci(move)
             else:
-                printAndFlush("unknown position type")
+                print_and_flush("unknown position type")
         except Exception as e:
-            printAndFlush("something went wrong with the position. Please try again")
-            printAndFlush(e)
+            print_and_flush("something went wrong with the position. Please try again")
+            print_and_flush(e)
 
         # show the board
         # printAndFlush(self.board)
@@ -364,31 +365,36 @@ class GoratschinChess:
     # prints stats on how often was listened to boss and how often to clerk
     def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
-        printAndFlush("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
-                       + " white {:2.1f}% win {:2.1f}% draw {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
+        print_and_flush("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
+                       + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
         winClerk, drawClerk, lossClerk = get_win_draw_loss_percentages(self._scores_white[1])
-        printAndFlush("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
-                      + " white {:2.1f}% win {:2.1f}% draw {:2.1f}% loss".format(winClerk, drawClerk, lossClerk))
-        printAndFlush("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
+        print_and_flush("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
+                      + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winClerk, drawClerk, lossClerk))
+        print_and_flush("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
         totalSum = self.listenedTo[0] + self.listenedTo[1] 
         bossSum = self.listenedTo[0] 
         bossPercent = (float(bossSum) / float(totalSum)) * 100.0
-        printAndFlush("info string listen stats Boss {:2.1f} %".format(bossPercent))
+        print_and_flush("info string listen stats Boss {:2.1f} %".format(bossPercent))
         agreedPercent = (float(self.agreed) / float(totalSum)) * 100.0
-        printAndFlush("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
+        print_and_flush("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
 
 
 # UTILS
 
 # This function flushes stdout after writing so the UCI GUI sees it
-def printAndFlush(text):
+def print_and_flush(text):
     print(text, flush=True)
   
-# get score as win percentage  
-def get_win_draw_loss_percentages(centipawns):
-    if (centipawns > 0):
-        w = 1 / (1 + pow( 10, (- (centipawns / 4)))) * 100
+  
+# get score as win/draw/loss percentages  
+def get_win_draw_loss_percentages(pawn_value):
+    w = 1 / (1 + pow( 10, (- (abs(pawn_value) / 4)))) * 100 # - 50 + (abs(pawn_value) / 10)
+    ## q = (math.degrees(math.atan(abs(pawn_value) / 290.680623072))) / 1.548090806     
+    ## w = q # * 5000 + 5000
+    if (pawn_value >= 0):
         return w, 100 - w, 0
     else:
-        w = 1 / (1 + pow( 10, (centipawns / 4))) * 100
         return 0, 100 - w, w
+    
+    
+    
