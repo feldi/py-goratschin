@@ -117,6 +117,9 @@ class GoratschinChess:
             elif userCommand.startswith("endg"):   
                 self._handle_position("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
                 
+            elif userCommand.startswith("bdg"):   
+                self._handle_position("position fen rn1qkb1r/ppp1pppp/8/5b2/3Pn3/2N5/PPP3PP/R1BQKBNR w KQkq - 0 6" )
+                 
             elif userCommand.startswith("tb"):  
                 options = {}    
                 options["SyzygyPath"] = "D:/chess/tb-master/tb"
