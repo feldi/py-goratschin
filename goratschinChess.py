@@ -394,7 +394,7 @@ def get_win_draw_loss_percentages(pawn_value):
     ## w = 1 / (1 + pow( 10, (- (abs(pawn_value) / 4)))) * 100 # - 50 + (abs(pawn_value) / 10)
     ## q = (math.degrees(math.atan(abs(pawn_value) / 290.680623072))) / 1.548090806     
     ## w = q # * 5000 + 5000
-    w = cp2q(pawn_value) * 100
+    w = cp2q(abs(pawn_value)) * 100
     if (pawn_value >= 0):
         return w, 100 - w, 0
     else:
