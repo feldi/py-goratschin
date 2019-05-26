@@ -399,5 +399,11 @@ def get_win_draw_loss_percentages(pawn_value):
     else:
         return 0, 100 - w, w
     
-    
+# from lc0_analyzer-extras
+
+def q2cp(q):
+    return 290.680623072 * math.tan(1.548090806 * q) / 100.0
+
+def cp2q(cp):
+    return math.atan(cp*100.0/290.680623072)/1.548090806
     

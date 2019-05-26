@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# to create an EXE from this file, do:
+# pip install pyinstaller
+# pyinstaller -wF goratschinLauncher.py
+# copy .exe from 'dist' directory in root directory
+
 import argparse
 import logging
 
