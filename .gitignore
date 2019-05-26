@@ -31,7 +31,6 @@ MANIFEST
 *.manifest
 *.spec
 dist/
-*.exe
 
 # Installer logs
 pip-log.txt
