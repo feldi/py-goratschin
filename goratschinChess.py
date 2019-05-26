@@ -380,8 +380,8 @@ class GoratschinChess:
         print_and_flush("info string listen stats Boss {:2.1f} %".format(bossPercent))
         agreedPercent = (float(self.agreed) / float(totalSum)) * 100.0
         print_and_flush("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
-
-
+        
+ 
 # UTILS
 
 # This function flushes stdout after writing so the UCI GUI sees it
@@ -391,9 +391,10 @@ def print_and_flush(text):
   
 # get score as win/draw/loss percentages  
 def get_win_draw_loss_percentages(pawn_value):
-    w = 1 / (1 + pow( 10, (- (abs(pawn_value) / 4)))) * 100 # - 50 + (abs(pawn_value) / 10)
+    ## w = 1 / (1 + pow( 10, (- (abs(pawn_value) / 4)))) * 100 # - 50 + (abs(pawn_value) / 10)
     ## q = (math.degrees(math.atan(abs(pawn_value) / 290.680623072))) / 1.548090806     
     ## w = q # * 5000 + 5000
+    w = cp2q(pawn_value) * 100
     if (pawn_value >= 0):
         return w, 100 - w, 0
     else:
