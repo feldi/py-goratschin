@@ -199,7 +199,7 @@ class GoratschinChess:
                 exitLoop = True
             elif 'currmove' not in info:
                 text = self._make_uci_info_from_dict(info)
-                ## print_and_flush("info string engine " + str(index) + " " + self.engineFileNames[index] + " ")
+                print_and_flush("info string engine " + self.engineFileNames[index] + " says:")
                 print_and_flush("info " + text)
             await asyncio.sleep(0)            
             
