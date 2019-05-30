@@ -3,3 +3,10 @@
 /N41812
 /weights_old
 /april2019/
+/COPYING
+/CUDA.txt
+/CUDNN.txt
+/cublas64_100.dll
+/cudart64_100.dll
+/cudnn64_7.dll
+/weights_run1_41926.pb.gz

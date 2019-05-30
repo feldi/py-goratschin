@@ -30,4 +30,16 @@ pip install python-chess
 
 To run GoratschinChess as a python program, execute the GoratschinLauncher.py, NOT the GoratschinChess.py!
 
-On Windows, you may run Goratschin.bat for conveniance. This can also be used as the engine command in Arena, CuteChess, etc.
+## Using GoratschinChess on Windows as an UCI engine
+
+On Windows, you may run Goratschin.bat for conveniance. This can be used as the engine command in Arena, CuteChess, etc.
+
+To build a Windows EXE, which is needed for Chessbase / Fritz UCI engines, get PyInstaller by doing
+
+```
+pip install pyinstaller
+```
+
+and run ``build_exe.bat`` which will put the executable file ``GoratschinChess.exe`` in the root folder of this project.
+
+

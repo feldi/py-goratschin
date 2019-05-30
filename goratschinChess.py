@@ -79,7 +79,7 @@ class GoratschinChess:
             # print_and_flush("info string cmd: " + userCommand)
             
             if userCommand == "uci":
-                print_and_flush("id name Goratschin")
+                print_and_flush("id name GoratschinChess")
                 print_and_flush("id author Peter Feldtmann")
                 print_and_flush("uciok")
 
