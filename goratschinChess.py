@@ -100,10 +100,13 @@ class GoratschinChess:
             elif userCommand.startswith("go"):
                 parts = userCommand.split(" ")
                 go_commands = {}
+                infinite = False
                 for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes"):
                     if command in parts:
                         go_commands[command] = parts[parts.index(command) + 1]
-                self._start_engines(go_commands)
+                if "infinite" in parts:
+                    infinite = True
+                self._start_engines(go_commands, infinite)
                 ##self._check_results()
                 loop = asyncio.get_event_loop()
 #                 try:
@@ -145,49 +148,52 @@ class GoratschinChess:
             else:
                 print_and_flush("unknown command")
 
-    def _start_engine(self, index, cmds):
+    def _start_engine(self, index, cmds, infinite):
         engine = self._engines[index]
         ##engine.ucinewgame()
         #engine.position(self.board)
-        
-        white_clock = int(int(cmds.get("wtime"))/1000) if cmds.get("wtime") is not None else None 
-        black_clock=int(int(cmds.get("btime"))/1000)   if cmds.get("btime") is not None else None 
-        white_inc=int(int(cmds.get("winc"))/1000) if cmds.get("winc") is not None else None 
-        black_inc=int(int(cmds.get("binc"))/1000) if cmds.get("binc") is not None else None 
-        depth=int(cmds.get("depth")) if cmds.get("depth") is not None else None 
-        nodes=int(cmds.get("nodes")) if cmds.get("nodes") is not None else None 
-        time=int(int(cmds.get("movetime"))/1000) if cmds.get("movetime") is not None else None 
-        mate=int(cmds.get("mate")) if cmds.get("mate") is not None else None 
-        remaining_moves=int(cmds.get("movestogo")) if cmds.get("movestogo") is not None else None 
-                
-        limit = chess.engine.Limit(
-            white_clock=white_clock,
-            black_clock=black_clock,
-            white_inc=white_inc,
-            black_inc=black_inc,
-            depth=depth,
-            nodes=nodes,
-            time=time,
-            mate=mate,
-            remaining_moves=remaining_moves
-            )
+       
+        if infinite:
+            limit = None
+        else:   
+            white_clock = int(int(cmds.get("wtime"))/1000) if cmds.get("wtime") is not None else None 
+            black_clock=int(int(cmds.get("btime"))/1000)   if cmds.get("btime") is not None else None 
+            white_inc=int(int(cmds.get("winc"))/1000) if cmds.get("winc") is not None else None 
+            black_inc=int(int(cmds.get("binc"))/1000) if cmds.get("binc") is not None else None 
+            depth=int(cmds.get("depth")) if cmds.get("depth") is not None else None 
+            nodes=int(cmds.get("nodes")) if cmds.get("nodes") is not None else None 
+            time=int(int(cmds.get("movetime"))/1000) if cmds.get("movetime") is not None else None 
+            mate=int(cmds.get("mate")) if cmds.get("mate") is not None else None 
+            remaining_moves=int(cmds.get("movestogo")) if cmds.get("movestogo") is not None else None 
+         
+            limit = chess.engine.Limit(
+                white_clock=white_clock,
+                black_clock=black_clock,
+                white_inc=white_inc,
+                black_inc=black_inc,
+                depth=depth,
+                nodes=nodes,
+                time=time,
+                mate=mate,
+                remaining_moves=remaining_moves
+                )
               
         self._results[index] = engine.analysis(self.board, limit)
         ## print_and_flush(self._results[index])
              
         engineName = self.engineFileNames[index]
         if index == 0:
-            print_and_flush("info string started engine 0 " + engineName + " as boss " + str(limit))
+            print_and_flush("info string started engine 0 " + engineName + " as boss " + str(limit) + " infinite " + str(infinite))
         else:
-            print_and_flush("info string started engine 1 " + engineName + " as clerk " + str(limit))
+            print_and_flush("info string started engine 1 " + engineName + " as clerk " + str(limit) + " infinite " + str(infinite))
 
-    def _start_engines(self, go_commands):
+    def _start_engines(self, go_commands, infinite):
         self._moves = [None, None]
         self._scores = [None, None]
         self._canceled = False
 
-        self._start_engine(1, go_commands)
-        self._start_engine(0, go_commands)
+        self._start_engine(1, go_commands, infinite)
+        self._start_engine(0, go_commands, infinite)
         
     async def _check_result(self, index):
         info = None
