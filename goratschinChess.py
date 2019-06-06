@@ -183,9 +183,9 @@ class GoratschinChess:
              
         engineName = self.engineFileNames[index]
         if index == 0:
-            print_and_flush("info string started engine 0 " + engineName + " as boss " + str(limit) + " infinite " + str(infinite))
+            print_and_flush("info string started engine 0 " + engineName + " as boss, limit: " + str(limit) + ", infinite:" + str(infinite))
         else:
-            print_and_flush("info string started engine 1 " + engineName + " as clerk " + str(limit) + " infinite " + str(infinite))
+            print_and_flush("info string started engine 1 " + engineName + " as clerk, limit: " + str(limit) + ", infinite:" + str(infinite))
 
     def _start_engines(self, go_commands, infinite):
         self._moves = [None, None]
