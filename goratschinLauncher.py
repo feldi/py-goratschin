@@ -8,8 +8,8 @@
 import argparse
 import logging
 
-##import asyncio
-## import chess.engine
+# import asyncio
+# import chess.engine
 
 from goratschinChess import GoratschinChess
 
@@ -30,5 +30,5 @@ if __name__ == "__main__":
     # This starts combichess. Do NOT change or remove this!
     GoratschinChess(engineFolder, engineFileNames).start()
     
-    ## asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
-    ## asyncio.run(CombiChess(engineFolder, engineFileNames).start())
+#     asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
+#     asyncio.run(GoratschinChess(engineFolder, engineFileNames).start())

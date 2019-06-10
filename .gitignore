@@ -103,8 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Eclipse
+# Eclipse, Visual Studio Code
 .project
 .pydevproject
-.vscode/settings.json
-/cpp_goratschin.exe
+./cpp_goratschin.exe
+/.vscode/

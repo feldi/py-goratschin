@@ -2,12 +2,15 @@ import asyncio
 import os
 import sys
 import math
+import threading
+import subprocess
+import time
 
 import chess.engine
 
-# This class contains the inner workings of goratschinChess_v1. If you want to change its settings or start it then
+# This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
 # Please go to launcher.py This file also lets you change what engines GoratschinChess uses.
-class GoratschinChess:
+class GoratschinChessV2:
     # after a stop command, ignore the finish callback. See onFinished.
     _canceled = False
 
@@ -36,11 +39,10 @@ class GoratschinChess:
     score_margin = None
 
     def __init__(self, engineLocation, engineNames):
-        asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
+#         asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
         self.score_margin = 0.5 # in centipawns
-        print_and_flush("GoratschinChess 1.0 by P. Feldtmann based on CombiChess by T. Friederich")
 
     # This starts GoratschinChess.
     def start(self):
@@ -48,11 +50,37 @@ class GoratschinChess:
         for i in range(0, len(self._engines)):
             try:
                 ## self._engines[i] = chess.uci.popen_engine(os.path.join(self.engineFolder, self.engineFileNames[i]), setpgrp=False)
-                self._engines[i] = chess.engine.SimpleEngine.popen_uci(os.path.join(self.engineFolder, self.engineFileNames[i]))
+                engpath = os.path.join(self.engineFolder, self.engineFileNames[i])
+#                 eng = chess.engine.SimpleEngine.popen_uci(engpath)
+#                 self._engines[i] = eng
                 # Register a standard info handler.
                 ##info_handler = chess.uci.InfoHandler()
                 ##self._engines[i].info_handlers.append(info_handler)
-            except:
+                
+                p = subprocess.Popen(engpath, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+                
+#                 p.stdin.write("uci\n")
+#                 p.stdin.flush()
+                # fetch output
+#                 for line in p.stdout:
+#                     print(line)
+                    
+#                 p.stdin.write("isready\n")
+#                 p.stdin.flush()
+#                 for line in p.stdout:
+#                     print(line)
+                
+                
+                self._engines[i] = p
+                uciRead = UciRead(p, i, self)
+#                 uciWrite = UciWrite(p)
+                uciRead.start()
+#                 uciWrite.start()
+#                 p.stdin.write("uci\n")
+#                 p.stdin.flush()
+                
+            except Exception as e:
+                sys.stderr.write(str(e))
                 sys.stderr.write("GoratschinChess Error: could not load the engine at file path: " + self.engineFolder + "/" + self.engineFileNames[i])
                 sys.stderr.write(
                     "\n\nDid you change the script to include the engines you want to use with GoratschinChess?")
@@ -62,7 +90,9 @@ class GoratschinChess:
             # tell the engines to init and start a new game
             ##self._engines[i].uci()
             ##self._engines[i].ucinewgame()
-            
+        
+        print_and_flush("GoratschinChess 1.0 by P. Feldtmann based on CombiChess by T. Friederich")
+          
         # starts the main program
         self._mainloop()
 
@@ -76,9 +106,13 @@ class GoratschinChess:
             # print_and_flush("info string cmd: " + userCommand)
             
             if userCommand == "uci":
-                print_and_flush("id name GoratschinChess")
+                print_and_flush("id name GoratschinChessV2")
                 print_and_flush("id author Peter Feldtmann")
-                _print_uci_options()
+                
+                for engine in self._engines:
+                    engine.stdin.write("uci\n")
+                    engine.stdin.flush()
+                
                 print_and_flush("uciok")
 
             elif userCommand.startswith("setoption name"):
@@ -97,24 +131,36 @@ class GoratschinChess:
                 
             elif userCommand == "isready":
                 print_and_flush("readyok")
+                
+                              
+            elif userCommand == "ucinewgame":
+                pass
 
             elif userCommand.startswith("go"):
-                parts = userCommand.split(" ")
-                go_commands = {}
-                infinite = False
-                for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes"):
-                    if command in parts:
-                        go_commands[command] = parts[parts.index(command) + 1]
-                if "infinite" in parts:
-                    infinite = True
-                self._start_engines(go_commands, infinite)
+                for engine in self._engines:
+                    engine.stdin.write(userCommand + "\n")
+                    engine.stdin.flush()
+                # print_and_flush("started analysis with '" + userCommand + "'")
+                
+#                 parts = userCommand.split(" ")
+#                 go_commands = {}
+#                 infinite = False
+#                 for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes"):
+#                     if command in parts:
+#                         go_commands[command] = parts[parts.index(command) + 1]
+#                 if "infinite" in parts:
+#                     infinite = True
+#                 self._start_engines(go_commands, infinite)
+#                 await self._check_result(0)
+#                 await self._check_result(1)
 #                 await self._check_results()
-                loop = asyncio.get_event_loop()
+#                 loop = asyncio.get_event_loop()
 #                 try:
-                loop.run_until_complete(self._check_results())
+#                 loop.run_until_complete(self._check_results())
 #                 asyncio.run(self._check_results())
 #                 finally:
 #                     loop.close()
+#                 await asyncio.sleep(0)      
 
             elif userCommand.startswith("position"):
                 self._handle_position(userCommand)
@@ -139,17 +185,18 @@ class GoratschinChess:
                 self._handle_position("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
                                     
             elif userCommand == "quit":
-                for en in self._engines:
-                    en.quit()
+                for engine in self._engines:
+                    engine.terminate()
                 print("Bye.")
                 exitFlag = True
                 
             elif userCommand == "stop":
-                for en in self._engines:
-                    en.quit()
-                print("All engines stopped.")
+                for engine in self._engines:
+                    engine.stdin.write("stop\n")
+                    engine.stdin.flush()
             else:
                 print_and_flush("unknown command")
+            # time.sleep(1)
 
     def _start_engine(self, index, cmds, infinite):
         engine = self._engines[index]
@@ -190,37 +237,58 @@ class GoratschinChess:
         else:
             print_and_flush("info string started engine 1 " + engineName + " as clerk, limit: " + str(limit) + ", infinite:" + str(infinite))
 
-    def _start_engines(self, go_commands, infinite):
+    async def _start_engines(self, go_commands, infinite):
         self._moves = [None, None]
         self._scores = [None, None]
         self._canceled = False
 
-        self._start_engine(1, go_commands, infinite)
-        self._start_engine(0, go_commands, infinite)
+        await self._start_engine(1, go_commands, infinite)
+        await self._start_engine(0, go_commands, infinite)
         
-    async def _check_result(self, index):
+    def _check_result_v1(self, index):
+        if self._results[index] is None:
+            return
         info = None
         exitLoop = False
         while not exitLoop:   
             last_info = info   
             info = self._results[index].next()
+            print_and_flush("got info " + info)
             if info is None:
                 exitLoop = True
             elif 'currmove' not in info:
                 text = self._make_uci_info_from_dict(info)
                 print_and_flush("info string engine " + self.engineFileNames[index] + " says:")
                 print_and_flush("info " + text)
-            await asyncio.sleep(0)            
+#             await asyncio.sleep(0)            
             
         self._decide(index, last_info)
+        
+    def _check_result(self, index, info):
+        # print_and_flush("got info from " +  self.engineFileNames[index] + " >>> " + info)
+        if info is None:
+            pass
+        elif info.startswith("id ") or info.startswith("uciok"):
+            pass
+        elif 'currmove' in info:
+            pass
+        elif 'info depth' in info:
+            # text = self._make_uci_info_from_dict(info)
+            print_and_flush("info string engine " + self.engineFileNames[index] + " says:")
+#             print_and_flush("info " + text)
+        print_and_flush(info)
+            # self._decide(index, info)
                         
-    async def _check_results(self):
-        tasks = []
+#     async def _check_results(self):
+#         tasks = []
 #         tasks.append(asyncio.ensure_future(self._check_result(0)))
 #         tasks.append(asyncio.ensure_future(self._check_result(1)))
-        tasks.append(self._check_result(0))
-        tasks.append(self._check_result(1))
-        await asyncio.gather(*tasks)
+#         tasks.append(self._check_result(0))
+#         tasks.append(self._check_result(1))
+#         await asyncio.gather(*tasks)
+#         loop = asyncio.get_event_loop()
+#         await asyncio.run_coroutine_threadsafe(self._check_result(0), loop)
+#         await asyncio.run_coroutine_threadsafe(self._check_result(1), loop)
              
     def _decide(self, index, info):
         boss = 0
@@ -416,66 +484,36 @@ def q2cp(q):
 
 def cp2q(cp):
     return math.atan(cp*100.0/290.680623072)/1.548090806
-    
-def _print_uci_options():
-    for text in ["option name Debug Log File type string default",
-                 "option name WeightsFile type string default <autodiscover>",
-                 "option name Backend type combo default cudnn var cudnn var cudnn-fp16 var check var random var roundrobin var multiplexing var demux",
-                 "option name Contempt type spin default 24 min -100 max 100",
-                 "option name Analysis Contempt type combo default Both var Off var White var Black var Both",
-                 "option name Threads type spin default 1 min 1 max 512",
-                 "option name BackendOptions type string default",
-                 "option name Threads type spin default 2 min 1 max 128",
-                 "option name Hash type spin default 16 min 1 max 131072",
-                 "option name NNCacheSize type spin default 200000 min 0 max 999999999",
-                 "option name Clear Hash type button",
-                 "option name MinibatchSize type spin default 256 min 1 max 1024",
-                 "option name MaxPrefetch type spin default 32 min 0 max 1024",
-                 "option name CPuct type string default 3.000000",
-                 "option name Ponder type check default false",
-                 "option name CPuctBase type string default 19652.000000",
-                 "option name CPuctFactor type string default 2.000000",
-                 "option name MultiPV type spin default 1 min 1 max 500",
-                 "option name Temperature type string default 0.000000",
-                 "option name Skill Level type spin default 20 min 0 max 20",
-                 "option name Move Overhead type spin default 30 min 0 max 5000",
-                 "option name Minimum Thinking Time type spin default 20 min 0 max 5000",
-                 "option name TempDecayMoves type spin default 0 min 0 max 100",
-                 "option name Slow Mover type spin default 84 min 10 max 1000",
-                 "option name TempCutoffMove type spin default 0 min 0 max 1000",
-                 "option name nodestime type spin default 0 min 0 max 10000",
-                 "option name UCI_Chess960 type check default false",
-                 "option name UCI_AnalyseMode type check default false",
-                 "option name SyzygyPath type string default <empty>",
-                 "option name SyzygyProbeDepth type spin default 1 min 1 max 100",
-                 "option name TempEndgame type string default 0.000000",
-                 "option name Syzygy50MoveRule type check default true",
-                 "option name TempValueCutoff type string default 100.000000",
-                 "option name TempVisitOffset type string default 0.000000",
-                 "option name SyzygyProbeLimit type spin default 7 min 0 max 7",
-                 "option name DirichletNoise type check default false",
-                 "option name VerboseMoveStats type check default false",
-                 "option name SmartPruningFactor type string default 1.330000",
-                 "option name FpuStrategy type combo default reduction var reduction var absolute",
-                 "option name FpuValue type string default 1.200000",
-                 "option name FpuStrategyAtRoot type combo default same var reduction var absolute var same",
-                 "option name FpuValueAtRoot type string default 1.000000",
-                 "option name CacheHistoryLength type spin default 0 min 0 max 7",
-                 "option name PolicyTemperature type string default 2.200000",
-                 "option name MaxCollisionEvents type spin default 32 min 1 max 1024",
-                 "option name MaxCollisionVisits type spin default 9999 min 1 max 1000000",
-                 "option name OutOfOrderEval type check default true",
-                 "option name SyzygyFastPlay type check default true",
-                 "option name MultiPV type spin default 1 min 1 max 500",
-                 "option name ScoreType type combo default centipawn var centipawn var win_percentage var Q",
-                 "option name HistoryFill type combo default fen_only var no var fen_only var always",
-                 "option name KLDGainAverageInterval type spin default 100 min 1 max 10000000",
-                 "option name MinimumKLDGainPerNode type string default 0.000000",
-                 "option name MoveOverheadMs type spin default 200 min 0 max 100000000",
-                 "option name ImmediateTimeUse type string default 1.000000",
-                 "option name RamLimitMb type spin default 0 min 0 max 100000000",
-                 "option name ConfigFile type string default lc0.config",
-                 "option name LogFile type string default"]:
-        print_and_flush(text)
-   
+ 
+# class UciWrite(threading.Thread):
+#     def __init__(self, p):
+#         threading.Thread.__init__(self)
+#         self.p = p
+#     def run(self):
+#         # Secretly set the hidden option for user
+# #         p.stdin.write("setoption name LogLiveStats value true\n")
+#         while 1:
+#             s = sys.stdin.readline()
+# #             if s.startswith("position"):
+# #                 q.put(s)
+#             self.p.stdin.write(s)
+#             self.p.stdin.flush()
+#             if s.startswith("quit"):
+#                 print("Bye!!!")
+#                 self.p.terminate()
+#                 return   
 
+class UciRead(threading.Thread):
+    def __init__(self, p, index, father):
+        threading.Thread.__init__(self)
+        self.p = p
+        self.index = index
+        self.father = father
+        
+    def run(self):
+        while self.p.poll() == None:
+            # print_and_flush("waiting for info...")
+            info = self.p.stdout.readline().rstrip()
+#             # print_and_flush("Got info: '" + info + "'")
+            self.father._check_result(self.index, info)
+ 
