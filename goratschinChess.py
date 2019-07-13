@@ -111,8 +111,62 @@ class GoratschinChess:
                 self._canceled = False
                 self._moves = [None, None]
                 self._scores = [None, None]
-                self.send_command_to_engines(userCommand)
-                print_and_flush("info string started analysis with '" + userCommand + "'")
+
+                parts = userCommand.split(" ")
+                cmds = {}
+                for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes",
+                                "movetime", "mate", "movestogo", "infinite"):
+                    if command in parts:
+                        cmds[command] = parts[parts.index(command) + 1]
+
+                engineCommand = "go"
+
+                # do a little time control management
+                factor = 2 / 3
+
+                if cmds.get("wtime") is not None:
+                    if self.board.turn:  # WHITE to move
+                        white_clock = str(int(int(cmds.get("wtime")) * factor))
+                        engineCommand += " wtime " + white_clock 
+                    else:
+                        engineCommand += " wtime " + cmds.get("wtime")
+
+                if cmds.get("btime") is not None:
+                    if not(self.board.turn):  # BLACK to move
+                         black_clock = str(int(int(cmds.get("btime")) * factor))  
+                         engineCommand += " btime " + black_clock 
+                    else:
+                         engineCommand += " btime " + cmds.get("btime") 
+
+                if cmds.get("winc") is not None:  
+                    if self.board.turn:  # WHITE to move
+                        white_inc = str(int(int(cmds.get("winc")) * factor))  
+                        engineCommand += " winc " + white_inc 
+                    else:
+                        engineCommand += " winc " + cmds.get("winc") 
+
+                if cmds.get("binc") is not None:
+                    if not(self.board.turn):  # BLACK to move
+                        black_inc = str(int(int(cmds.get("binc")) * factor))
+                        engineCommand += " binc " + black_inc 
+                    else:
+                        engineCommand += " binc " + cmds.get("binc") 
+
+                if cmds.get("depth") is not None:
+                    engineCommand += " depth " + cmds.get("depth") 
+                if cmds.get("nodes") is not None:
+                   engineCommand += " nodes " + cmds.get("nodes") 
+                if cmds.get("movetime") is not None:
+                    engineCommand += " movetime " + cmds.get("movetime") 
+                if cmds.get("mate") is not None:
+                    engineCommand += " mate " + cmds.get("mate") 
+                if cmds.get("movestogo") is not None:
+                    engineCommand += " movestogo " + cmds.get("movestogo") 
+                if cmds.get("infinite") is not None:
+                    engineCommand += " infinite " 
+
+                self.send_command_to_engines(engineCommand)
+                print_and_flush("info string started analysis with '" + engineCommand + "'")
 
             elif userCommand == "stop":
                 self.send_command_to_engines("stop")
@@ -211,8 +265,9 @@ class GoratschinChess:
         
         cp_marker = parts[score_start + 1]
         if cp_marker == "mate":
-              # correct score if mating
+            # correct score if mating
             mate_moves= int(parts[score_start + 2])
+            print_and_flush("info string mate detected in " + str(mate_moves) + " moves")
             if mate_moves > 0:
                 cp = 30000 - (mate_moves * 10 )
             else:
