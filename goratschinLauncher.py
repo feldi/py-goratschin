@@ -7,6 +7,7 @@
 
 import argparse
 import logging
+import sys
 
 # import asyncio
 # import chess.engine
@@ -21,13 +22,26 @@ engineFileNames = ["lc0.exe", "stockfish_10_x64.exe"]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('-log', help='Name of log file.')
     parser.add_argument('-v', action='store_true', help='Verbose output. Changes log level from INFO to DEBUG.')
     args = parser.parse_args()
 
-    logger = logging.basicConfig(level=logging.DEBUG if args.v else logging.INFO)
-    ## logger = logging.basicConfig(level=logging.DEBUG)
+    # configure logging
 
-    # This starts combichess. Do NOT change or remove this!
+    logger = logging.getLogger("goratschinChess")   
+    logger.setLevel(logging.DEBUG if args.v else logging.INFO) 
+    #c_handler = logging.StreamHandler(sys.stdout)
+    #c_format = logging.Formatter('%(asctime)s - %(message)s')
+    #c_handler.setFormatter(c_format)
+    #logger.addHandler(c_handler)
+    if args.log:
+        f_handler = logging.FileHandler(args.log)
+        f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        f_handler.setFormatter(f_format)
+        logger.addHandler(f_handler)
+        print('logfile specified: ' + args.log, flush=True)
+    
+    # This starts the goratschinChess engine
     GoratschinChess(engineFolder, engineFileNames).start()
     
 #     asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())

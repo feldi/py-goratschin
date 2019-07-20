@@ -5,8 +5,11 @@ import math
 import threading
 import subprocess
 import time
+import logging
 
 import chess.engine
+
+logger = logging.getLogger("goratschinChess")  
 
 # This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
 # Please go to launcher.py This file also lets you change what engines GoratschinChess uses.
@@ -38,16 +41,21 @@ class GoratschinChess:
     
     score_margin = None
 
+    logger = None  
+
     def __init__(self, engineLocation, engineNames):
 #         asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
+
+        # self.logger = logging.getLogger("goratschinChess")  
+
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
         self.score_margin = 0.5 # in centipawns
 
     # This starts GoratschinChess.
     def start(self):
-        
-        print_and_flush("GoratschinChess 1.1 by P. Feldtmann based on CombiChess by T. Friederich")
+        logger.info('Starting GoratschinChess')
+        print_l("GoratschinChess 1.1 by P. Feldtmann based on CombiChess by T. Friederich")
 
         # first start the engines
         for i in range(0, len(self._engines)):
@@ -62,9 +70,9 @@ class GoratschinChess:
 
                 engineName = self.engineFileNames[i]  
                 if i == 0:
-                    print_and_flush("info string started engine 0 - " + engineName + " as boss")
+                    print_l("info string started engine 0 - " + engineName + " as boss")
                 else:
-                    print_and_flush("info string started engine 1 - " + engineName + " as clerk")
+                    print_l("info string started engine 1 - " + engineName + " as clerk")
                 
             except Exception as e:
                 sys.stderr.write(str(e))
@@ -91,18 +99,18 @@ class GoratschinChess:
             # print_and_flush("info string cmd: " + userCommand)
             
             if userCommand == "uci":
-                print_and_flush("id name GoratschinChess")
-                print_and_flush("id author Peter Feldtmann")
+                print_f("id name GoratschinChess")
+                print_f("id author Peter Feldtmann")
                 self.send_command_to_engines("uci")
                 time.sleep(1) #  wait long enough?
-                print_and_flush("uciok")
+                print_f("uciok")
 
             elif userCommand == "ucinewgame":
                 self.send_command_to_engines(userCommand)
 
             elif userCommand == "isready":
                 self.send_command_to_engines(userCommand)
-                print_and_flush("readyok")
+                print_f("readyok")
 
             elif userCommand.startswith("setoption"):
                 self.send_command_to_engines(userCommand)
@@ -115,7 +123,7 @@ class GoratschinChess:
                 parts = userCommand.split(" ")
                 cmds = {}
                 for command in ("movetime", "wtime", "btime", "winc", "binc", "depth", "nodes",
-                                "movetime", "mate", "movestogo", "infinite"):
+                                "movetime", "mate", "movestogo"):
                     if command in parts:
                         cmds[command] = parts[parts.index(command) + 1]
 
@@ -162,15 +170,15 @@ class GoratschinChess:
                     engineCommand += " mate " + cmds.get("mate") 
                 if cmds.get("movestogo") is not None:
                     engineCommand += " movestogo " + cmds.get("movestogo") 
-                if cmds.get("infinite") is not None:
+                if parts[1] == "infinite":
                     engineCommand += " infinite " 
 
                 self.send_command_to_engines(engineCommand)
-                print_and_flush("info string started analysis with '" + engineCommand + "'")
+                print_l("info string started analysis with '" + engineCommand + "'")
 
             elif userCommand == "stop":
                 self.send_command_to_engines("stop")
-                print_and_flush("info string stopping analysis ")
+                print_l("info string stopping analysis ")
                 
             elif userCommand.startswith("position"):
                 self._handle_position(userCommand)
@@ -181,6 +189,7 @@ class GoratschinChess:
                 for engine in self._engines:
                     engine.terminate()
                 print("Bye.")
+                logger.info('Exiting GoratschinChess')
                 exitFlag = True
 
             # special tests ...
@@ -205,7 +214,7 @@ class GoratschinChess:
                 self.send_command_to_engines("position fen " + self.board.fen())
 
             else:
-                print_and_flush("unknown command")
+                print_l("unknown command" + userCommand)
 
             time.sleep(0.1)
 
@@ -229,14 +238,14 @@ class GoratschinChess:
             pass
 
         elif info.startswith("option"):
-            print_and_flush(info)
+            print_f(info)
 
         elif 'currmove' in info:
             pass
 
         elif 'info depth' in info:
-            print_and_flush("info string engine " + self.engineFileNames[index] + " says:")
-            print_and_flush(info)
+            print_f("info string engine " + self.engineFileNames[index] + " says:")
+            print_f(info)
 
         elif 'bestmove' in info:
             self._decide(index, prev_info)       
@@ -267,7 +276,7 @@ class GoratschinChess:
         if cp_marker == "mate":
             # correct score if mating
             mate_moves= int(parts[score_start + 2])
-            print_and_flush("info string mate detected in " + str(mate_moves) + " moves")
+            print_f("info string mate detected in " + str(mate_moves) + " moves")
             if mate_moves > 0:
                 cp = 30000 - (mate_moves * 10 )
             else:
@@ -288,7 +297,7 @@ class GoratschinChess:
             
         self._scores_white[index] = cpWhite
 
-        print_and_flush("info string eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
+        print_l("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
 
         # set the move in the found moves
         self._moves[index] = engineMove
@@ -307,7 +316,7 @@ class GoratschinChess:
             
         # if engine 0 and 1 are done, and they agree on a move, do that move
         if self._moves[boss] is not None and self._moves[boss] == self._moves[clerk]:
-            print_and_flush("info string boss and clerk agree, listening to boss")
+            print_l("info string boss and clerk agree, listening to boss")
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
@@ -317,27 +326,27 @@ class GoratschinChess:
             diff = self._scores[clerk] - self._scores[boss]
                        
             if diff >= self.score_margin:
-                print_and_flush("info string listening to stronger clerk")
+                print_l("info string listening to stronger clerk")
                 self.listenedTo[clerk] += 1
                 bestMove = self._moves[clerk]
             elif diff > 0:
-                print_and_flush("info string listening to boss, clerk is stronger, but not enough")
+                print_l("info string listening to boss, clerk is stronger, but not enough")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
             else:
-                print_and_flush("info string listening to boss, clerk is not stronger")
+                print_l("info string listening to boss, clerk is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
 
         # all engines are done and they dont agree. Listen to boss
         elif None not in self._moves:
-            print_and_flush("info string listening to boss, engines dont agree")
+            print_l("info string listening to boss, engines dont agree")
             self.listenedTo[boss] += 1
             bestMove = self._moves[boss]
             
         # we dont know our best move yet
         else:
-            print_and_flush("info string dont know best move yet")
+            print_l("info string dont know best move yet")
             return
 
         self._printStats()
@@ -347,7 +356,7 @@ class GoratschinChess:
         # stop remaining engines
         self.send_command_to_engines("stop")
 
-        print_and_flush("bestmove " + str(bestMove))
+        print_l("bestmove " + str(bestMove))
 
     # inverse of chess.emgine.parse_uci_info
     # make uci info string from dictionary
@@ -388,7 +397,7 @@ class GoratschinChess:
                     fen, moves = " ".join(rest[:6]), rest[7:]
                     self.board.set_fen(fen)
                     for move in moves:
-                        print_and_flush("Adding " + move + " to stack")
+                        print_f("Adding " + move + " to stack")
                         self.board.push_uci(move)
                 else:
                     self.board.set_fen(rest)
@@ -396,13 +405,13 @@ class GoratschinChess:
             elif words[1] == "startpos":
                 self.board.reset()
                 for move in words[3:]:  # skip the first two words : 'position' and 'startpos'
-                    print_and_flush("Adding " + move + " to stack")
+                    print_f("Adding " + move + " to stack")
                     self.board.push_uci(move)
             else:
-                print_and_flush("unknown position type")
+                print_f("unknown position type")
         except Exception as e:
-            print_and_flush("something went wrong with the position. Please try again")
-            print_and_flush(e)
+            print_f("something went wrong with the position. Please try again")
+            print_f(e)
 
         # show the board
         # printAndFlush(self.board)
@@ -410,25 +419,30 @@ class GoratschinChess:
     # prints stats on how often was listened to boss and how often to clerk
     def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
-        print_and_flush("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
+        print_l("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
                        + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
         winClerk, drawClerk, lossClerk = get_win_draw_loss_percentages(self._scores_white[1])
-        print_and_flush("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
+        print_l("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
                       + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winClerk, drawClerk, lossClerk))
-        print_and_flush("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
+        print_l("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
         totalSum = self.listenedTo[0] + self.listenedTo[1] 
         bossSum = self.listenedTo[0] 
         bossPercent = (float(bossSum) / float(totalSum)) * 100.0
-        print_and_flush("info string listen stats Boss {:2.1f} %".format(bossPercent))
+        print_l("info string listen stats Boss {:2.1f} %".format(bossPercent))
         agreedPercent = (float(self.agreed) / float(totalSum)) * 100.0
-        print_and_flush("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
+        print_l("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
         
  
 # UTILS
 
 # This function flushes stdout after writing so the UCI GUI sees it
-def print_and_flush(text):
+def print_f(text):
     print(text, flush=True)
+ 
+# This function print_f's and logs 
+def print_l(text):
+    print(text, flush=True)
+    logger.info(text)
     
 def get_from_info(info, item):
     try:
