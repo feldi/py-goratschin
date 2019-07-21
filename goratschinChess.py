@@ -12,7 +12,7 @@ import chess.engine
 logger = logging.getLogger("goratschinChess")  
 
 # This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
-# Please go to launcher.py This file also lets you change what engines GoratschinChess uses.
+# Please go to goratschinLauncher.py This file also lets you change what engines GoratschinChess uses.
 class GoratschinChess:
     # after a stop command, ignore the finish callback. See onFinished.
     _canceled = False
