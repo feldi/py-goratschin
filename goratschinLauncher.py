@@ -45,6 +45,3 @@ if __name__ == "__main__":
     
     # This starts the goratschinChess engine
     GoratschinChess(engineFolder, engineFileNames, args.margin).start()
-    
-#     asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
-#     asyncio.run(GoratschinChess(engineFolder, engineFileNames).start())
