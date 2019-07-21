@@ -39,23 +39,25 @@ class GoratschinChess:
     engineFolder = None
     engineFileNames = None
     
+    # Margin in centipawns of which the clerk's eval must be better than the boss.
     score_margin = None
 
     logger = None  
 
-    def __init__(self, engineLocation, engineNames):
+    def __init__(self, engineLocation, engineNames, margin):
 #         asyncio.set_event_loop_policy(chess.engine.EventLoopPolicy())
 
         # self.logger = logging.getLogger("goratschinChess")  
 
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
-        self.score_margin = 0.5 # in centipawns
+        self.score_margin = margin / 100 # in centipawns, default: 0.5
 
     # This starts GoratschinChess.
     def start(self):
         logger.info('Starting GoratschinChess')
         print_l("GoratschinChess 1.1 by P. Feldtmann based on CombiChess by T. Friederich")
+        logger.info('Margin is {:2.2f}'.format(self.score_margin))
 
         # first start the engines
         for i in range(0, len(self._engines)):
@@ -284,9 +286,9 @@ class GoratschinChess:
         else:
             cp = int(parts[score_start + 2])
             
-        ## print_and_flush("info string pov score " + str(cp))
-        
         cp = cp / 100
+
+        # print_f("info string pov score " + str(cp))    
 
         self._scores[index] = cp
         
@@ -314,7 +316,7 @@ class GoratschinChess:
 #             for info in self._results[index]: 
 #                 info.stop()
             
-        # if engine 0 and 1 are done, and they agree on a move, do that move
+        # if all engines are done, and they agree on a move, do that move
         if self._moves[boss] is not None and self._moves[boss] == self._moves[clerk]:
             print_l("info string boss and clerk agree, listening to boss")
             self.listenedTo[boss] += 1
@@ -326,15 +328,15 @@ class GoratschinChess:
             diff = self._scores[clerk] - self._scores[boss]
                        
             if diff >= self.score_margin:
-                print_l("info string listening to stronger clerk")
+                print_l("info string listening to clerk; which is stronger by {:2.2f}".format(diff))
                 self.listenedTo[clerk] += 1
                 bestMove = self._moves[clerk]
             elif diff > 0:
-                print_l("info string listening to boss, clerk is stronger, but not enough")
+                print_l("info string listening to boss; clerk is stronger, but not enough by {:2.2f}".format(diff))
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
             else:
-                print_l("info string listening to boss, clerk is not stronger")
+                print_l("info string listening to boss; clerk is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
 
