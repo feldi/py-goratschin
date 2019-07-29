@@ -299,6 +299,7 @@ class GoratschinChess:
             
         self._scores_white[index] = cpWhite
 
+        print_l("info string final info " + engineName + ": " + info)
         print_l("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
 
         # set the move in the found moves
