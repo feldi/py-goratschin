@@ -24,9 +24,6 @@ class GoratschinChess:
     # The current move decided by the engine. None when it doesn't know yet
     _moves = [None, None]
         
-    # The current infos
-    _info = [None, None]
-
     # The current score of move decided by the engine. None when it doesn't know yet
     _scores = [None, None]
     _scores_white = [None, None] # from white's view
@@ -119,7 +116,6 @@ class GoratschinChess:
 
             elif userCommand.startswith("setoption"):
                 self.send_command_to_engines(userCommand)
-                log("Done: " + userCommand)
 
             elif userCommand.startswith("go"):
                 self._canceled = False
@@ -229,7 +225,7 @@ class GoratschinChess:
            engine.stdin.write(cmd + "\n")
            engine.stdin.flush()
 
-    def _check_result(self, index, info):
+    def _check_result(self, index, info, prev_info):
 
         if self._canceled is True:
             return
@@ -252,19 +248,17 @@ class GoratschinChess:
         elif 'info depth' in info:
             print_f("info string engine " + self.engineFileNames[index] + " says:")
             print_f(info)
-            self._info[index] = info
 
         elif 'bestmove' in info:
-            self._decide(index)       
+            self._decide(index, prev_info)       
                         
-    def _decide(self, index):
+    def _decide(self, index, info):
 
         if self._canceled is True:
             return
 
         boss = 0
         clerk = 1
-        info = self._info[index]
         parts = info.split()
      
         pv_start = get_from_info(parts, "pv")
@@ -329,37 +323,29 @@ class GoratschinChess:
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
-            diff = self._scores[clerk] - self._scores[boss]
-            if diff > 0:
-                print_l(self._info[clerk])
-            else:
-                print_l(self._info[boss])
-
+            
         # if clerk is much better than boss, do clerk's move
         elif self._moves[boss] is not None and self._moves[clerk] is not None:
             diff = self._scores[clerk] - self._scores[boss]
+                       
             if diff >= self.score_margin:
                 print_l("info string listening to clerk; which is stronger by {:2.2f}".format(diff))
                 self.listenedTo[clerk] += 1
                 bestMove = self._moves[clerk]
-                print_l(self._info[clerk])
             elif diff > 0:
                 print_l("info string listening to boss; clerk is stronger, but not enough, only {:2.2f}".format(diff))
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
-                print_l(self._info[boss])
             else:
                 print_l("info string listening to boss; clerk is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
-                print_l(self._info[boss])
 
         # all engines are done and they dont agree. Listen to boss
         elif None not in self._moves:
             print_l("info string listening to boss, engines dont agree")
             self.listenedTo[boss] += 1
             bestMove = self._moves[boss]
-            print_l(self._info[boss])
             
         # we dont know our best move yet
         else:
@@ -516,10 +502,15 @@ class EngineOutputHandler(threading.Thread):
         self.outer_class = outer_class
         
     def run(self):
+        prev_info = None
         while self.p.poll() == None:
-            # print_f("waiting for info...")
+            # print_and_flush("waiting for info...")
             info = self.p.stdout.readline().rstrip()
-            # print_f("Got info: '" + info + "'")
-            self.outer_class._check_result(self.index, info)
+            # print_and_flush("Got info: '" + info + "'")
+            self.outer_class._check_result(self.index, info, prev_info)
+            if info.startswith("info"):
+                prev_info = info
+            else:
+                prev_info = None
             time.sleep(0.01)
  

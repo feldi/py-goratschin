@@ -8,6 +8,7 @@
 import argparse
 import logging
 import sys
+import datetime
 
 # import asyncio
 # import chess.engine
@@ -36,7 +37,8 @@ if __name__ == "__main__":
     #c_handler.setFormatter(c_format)
     #logger.addHandler(c_handler)
     if args.log:
-        f_handler = logging.FileHandler(args.log)
+        now = datetime.datetime.now()
+        f_handler = logging.FileHandler(args.log + '-' + str(now)[:10] + ".log")
         f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         f_handler.setFormatter(f_format)
         logger.addHandler(f_handler)
