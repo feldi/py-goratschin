@@ -18,7 +18,7 @@ from goratschinChess import GoratschinChess
 
 # file names for the engines. YOU CAN CHANGE THESE
 engineFolder = "./engines/"
-engineFileNames = ["lc0.exe", "stockfish_10_x64.exe"]
+engineFileNames = ["lc0.exe", "stockfish.exe"]
 
 
 if __name__ == "__main__":

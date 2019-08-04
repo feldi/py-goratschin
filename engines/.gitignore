@@ -11,3 +11,6 @@
 /cudnn64_7.dll
 /weights_run1_41926.pb.gz
 /256x20.T8-swa-610000
+/client.exe
+/README.txt
+/stockfish_10_x64.exe

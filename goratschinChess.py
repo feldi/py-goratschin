@@ -42,7 +42,7 @@ class GoratschinChess:
     engineFolder = None
     engineFileNames = None
     
-    # Margin in centipawns of which the clerk's eval must be better than the boss.
+    # Margin in centipawns of which the counselor's eval must be better than the boss.
     score_margin = None
 
     logger = None  
@@ -77,7 +77,7 @@ class GoratschinChess:
                 if i == 0:
                     print_l("info string started engine 0 - " + engineName + " as boss")
                 else:
-                    print_l("info string started engine 1 - " + engineName + " as clerk")
+                    print_l("info string started engine 1 - " + engineName + " as counselor")
                 
             except Exception as e:
                 sys.stderr.write(str(e))
@@ -263,7 +263,7 @@ class GoratschinChess:
             return
 
         boss = 0
-        clerk = 1
+        counselor = 1
         info = self._info[index]
         parts = info.split()
      
@@ -317,39 +317,39 @@ class GoratschinChess:
 #                 self.listenedTo[boss] += 1
 #                 bestMove = self._moves[boss]
 #             else:
-#                 print_and_flush("info string clerk detected mate, stop")
-#                 self.listenedTo[clerk] += 1
-#                 bestMove = self._moves[clerk]
+#                 print_and_flush("info string counselor detected mate, stop")
+#                 self.listenedTo[counselor] += 1
+#                 bestMove = self._moves[counselor]
 #             for info in self._results[index]: 
 #                 info.stop()
             
         # if all engines are done, and they agree on a move, do that move
-        if self._moves[boss] is not None and self._moves[boss] == self._moves[clerk]:
-            print_l("info string boss and clerk agree, listening to boss")
+        if self._moves[boss] is not None and self._moves[boss] == self._moves[counselor]:
+            print_l("info string boss and counselor agree, listening to boss")
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
-            diff = self._scores[clerk] - self._scores[boss]
+            diff = self._scores[counselor] - self._scores[boss]
             if diff > 0:
-                print_l(self._info[clerk])
+                print_l(self._info[counselor])
             else:
                 print_l(self._info[boss])
 
-        # if clerk is much better than boss, do clerk's move
-        elif self._moves[boss] is not None and self._moves[clerk] is not None:
-            diff = self._scores[clerk] - self._scores[boss]
+        # if counselor is much better than boss, do counselor's move
+        elif self._moves[boss] is not None and self._moves[counselor] is not None:
+            diff = self._scores[counselor] - self._scores[boss]
             if diff >= self.score_margin:
-                print_l("info string listening to clerk; which is stronger by {:2.2f}".format(diff))
-                self.listenedTo[clerk] += 1
-                bestMove = self._moves[clerk]
-                print_l(self._info[clerk])
+                print_l("info string listening to counselor; which is stronger by {:2.2f}".format(diff))
+                self.listenedTo[counselor] += 1
+                bestMove = self._moves[counselor]
+                print_l(self._info[counselor])
             elif diff > 0:
-                print_l("info string listening to boss; clerk is stronger, but not enough, only {:2.2f}".format(diff))
+                print_l("info string listening to boss; counselor is stronger, but not enough, only {:2.2f}".format(diff))
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
                 print_l(self._info[boss])
             else:
-                print_l("info string listening to boss; clerk is not stronger")
+                print_l("info string listening to boss; counselor is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
                 print_l(self._info[boss])
@@ -433,21 +433,21 @@ class GoratschinChess:
         # show the board
         # printAndFlush(self.board)
 
-    # prints stats on how often was listened to boss and how often to clerk
+    # prints stats on how often was listened to boss and how often to counselor
     def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
         print_l("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
                        + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
-        winClerk, drawClerk, lossClerk = get_win_draw_loss_percentages(self._scores_white[1])
-        print_l("info string Clerk best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
-                      + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winClerk, drawClerk, lossClerk))
-        print_l("info string listen stats [Boss, Clerk] " + str(self.listenedTo))
+        winCounselor, drawCounselor, lossCounselor = get_win_draw_loss_percentages(self._scores_white[1])
+        print_l("info string Counselor best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
+                      + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winCounselor, drawCounselor, lossCounselor))
+        print_l("info string listen stats [Boss, Counselor] " + str(self.listenedTo))
         totalSum = self.listenedTo[0] + self.listenedTo[1] 
         bossSum = self.listenedTo[0] 
         bossPercent = (float(bossSum) / float(totalSum)) * 100.0
         print_l("info string listen stats Boss {:2.1f} %".format(bossPercent))
         agreedPercent = (float(self.agreed) / float(totalSum)) * 100.0
-        print_l("info string Boss and Clerk agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
+        print_l("info string Boss and Counselor agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
         
  
 # UTILS

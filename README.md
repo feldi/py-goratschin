@@ -4,7 +4,7 @@ An UCI "chess engine" that combines the power of Lc0 and Stockfish - or any two 
 The code borrows heavily from the project [CombiChess](https://github.com/tom0334/CombiChess).
 Many Thanks to Tom Friederich for his work!
 
-GoratschinChess a "chess engine" that supports the UCI chess protocol and combines 2 engines (called 'boss' and 'clerk', respectively) into one. It works by asking the engines what they think the best move is for a given position, and then applying some logic to determine what move to actually do.
+GoratschinChess a "chess engine" that supports the UCI chess protocol and combines 2 engines (called 'boss' and 'counselor', respectively) into one. It works by asking the engines what they think the best move is for a given position, and then applying some logic to determine what move to actually do.
 
 The rules that it uses are fairly simple:
 
@@ -12,11 +12,11 @@ The rules that it uses are fairly simple:
 
   * If both engines give the same best move, then do that move.
   
-  * if the engines say something else, and the score of the clerk is better than that of the boss by a margin 'cp' (see self.score_margin in code) do the clerk's move. The default margin is 0.5 centipawns.
+  * if the engines say something else, and the score of the counselor is better than that of the boss by a margin 'cp' (see self.score_margin in code) do the counselor's move. The default margin is 0.5 centipawns.
   
   * Else, always listen to the 'boss engine'. 
   
-'Goratschin' is the name of a double-headed figure from the german sci-fi series "Perry Rhodan".
+'Goratschin' is the name of a double-headed character from the german sci-fi series "Perry Rhodan".
   
 
 ## Using GoratschinChess
@@ -34,7 +34,7 @@ To run GoratschinChess as a python program, execute the GoratschinLauncher.py, N
 
 On Windows, you may run Goratschin.bat for conveniance. This can be used as the engine command in Arena, CuteChess, etc.
 
-To build a Windows EXE, which is needed for Chessbase / Fritz UCI engines, get PyInstaller by doing
+To build a Windows EXE, which is needed for Chessbase / Fritz UCI engines, get the tool PyInstaller by doing
 
 ```
 pip install pyinstaller
