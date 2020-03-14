@@ -1,6 +1,6 @@
 @echo off
 rem cd D:/chess/py-goratschin
-rem python goratschinLauncher.py %*
+python goratschinLauncher.py %*
 
 rem verbose:
-python goratschinLauncher.py -log goratschinChess.log -e "../py_goratschin_engines/newEngines" -v
+rem python goratschinLauncher.py -log goratschinChess.log -e "../py_goratschin_engines/newEngines" -v
