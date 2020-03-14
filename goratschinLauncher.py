@@ -17,7 +17,7 @@ from goratschinChess import GoratschinChess
 
 
 # file names for the engines. YOU CAN CHANGE THESE
-engineFolder = "./engines/"
+engineFolderDefault = "./engines/"
 engineFileNames = ["lc0.exe", "stockfish.exe"]
 
 
@@ -25,8 +25,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='UCI ches engine.')
     parser.add_argument('-log', help='Name of log file.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output. Changes log level from INFO to DEBUG.')
+    parser.add_argument('-e', '--engineFolder', help='Engine folder.')
     parser.add_argument('-m', '--margin', type=int, default=50, help="Margin in centipawns of which the counselor's eval must be better than the boss.")
     args = parser.parse_args()
+
+    print('args :'  + str(args), flush=True)
 
     # configure logging
 
@@ -45,5 +48,13 @@ if __name__ == "__main__":
         # print('logfile specified: ' + args.log, flush=True)
     # print('margin specified: ' + str(args.margin), flush=True)
     
+    engines = args.engineFolder if args.engineFolder else engineFolderDefault
+    
+    print('engine folder specified: ' + str(engines), flush=True)
+
     # This starts the goratschinChess engine
-    GoratschinChess(engineFolder, engineFileNames, args.margin).start()
+    GoratschinChess(engines, engineFileNames, args.margin).start()
+
+    # import sys
+    # print(sys.executable)
+                        

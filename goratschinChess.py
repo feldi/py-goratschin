@@ -81,10 +81,10 @@ class GoratschinChess:
                 
             except Exception as e:
                 sys.stderr.write(str(e))
-                sys.stderr.write("GoratschinChess Error: could not load the engine at file path: " + self.engineFolder + "/" + self.engineFileNames[i])
+                sys.stderr.write("\nGoratschinChess Error: could not load the engine at file path: " + self.engineFolder + "/" + self.engineFileNames[i])
                 sys.stderr.write(
-                    "\n\nDid you change the script to include the engines you want to use with GoratschinChess?")
-                sys.stderr.write("To do this, open GoratschinLauncher.py and change the engineFilePaths.\n")
+                    "\n\nDid you change the script to include the engines you want to use with GoratschinChess?\n")
+                sys.stderr.write("To do this, call GoratschinLauncher.py with argument -e or --enginePath.\n")
                 sys.exit()
 
         # tell the engines to init and start a new game
