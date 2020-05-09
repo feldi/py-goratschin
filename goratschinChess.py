@@ -258,9 +258,9 @@ class GoratschinChess:
             print_f("info string engine " + self.engineFileNames[index] + " says:")
             print_f(info)
             # only store main pv
+            # since v0.25.x lc0 doesn't emit 'multipv 1' anymore...
             if ('multipv 1' in info) or ('multi' not in info):
                 self._info[index] = info
-                # print_f("added to stack")
 
         elif 'bestmove' in info:
             print_f(info)
