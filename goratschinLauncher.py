@@ -48,12 +48,12 @@ if __name__ == "__main__":
         # print('logfile specified: ' + args.log, flush=True)
     # print('margin specified: ' + str(args.margin), flush=True)
     
-    engines = args.engineFolder if args.engineFolder else engineFolderDefault
+    enginesDir = args.engineFolder if args.engineFolder else engineFolderDefault
     
-    print('engine folder specified: ' + str(engines), flush=True)
+    print('engine folder specified: ' + str(enginesDir), flush=True)
 
     # This starts the goratschinChess engine
-    GoratschinChess(engines, engineFileNames, args.margin).start()
+    GoratschinChess(enginesDir, engineFileNames, args.margin).start()
 
     # import sys
     # print(sys.executable)

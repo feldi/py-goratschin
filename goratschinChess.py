@@ -210,6 +210,11 @@ class GoratschinChess:
                  
             elif userCommand.startswith("tb"):  
                 self.send_command_to_engines("setoption name SyzygyPath value D:/chess/tb-master/tb ")
+
+            elif userCommand.startswith("mpv"):  
+                parts = userCommand.split(" ")
+                self.send_command_to_engines("setoption name MultiPV value " + parts[1])
+                print_l("setting multipv to " + parts[1])
                     
             elif userCommand.startswith("mw3"): 
                 self._handle_position("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
@@ -252,9 +257,12 @@ class GoratschinChess:
         elif 'info depth' in info:
             print_f("info string engine " + self.engineFileNames[index] + " says:")
             print_f(info)
-            self._info[index] = info
+            # only store main pv
+            if 'multipv 1' in info:
+                self._info[index] = info
 
         elif 'bestmove' in info:
+            print_f(info)
             self._decide(index)       
                         
     def _decide(self, index):
@@ -487,8 +495,13 @@ def get_win_draw_loss_percentages(pawn_value):
 def q2cp(q):
     return 290.680623072 * math.tan(1.548090806 * q) / 100.0
 
+    # New formula is cp = 90 × tan(1.5637541897 × q)
+
 def cp2q(cp):
     return math.atan(cp*100.0/290.680623072)/1.548090806
+
+    # New formula is cp = 90 × tan(1.5637541897 × q)
+    # return math.atan(cp/90)/1.5637541897
  
 # class UciWrite(threading.Thread):
 #     def __init__(self, p):
