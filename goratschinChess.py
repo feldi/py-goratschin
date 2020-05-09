@@ -258,7 +258,7 @@ class GoratschinChess:
             print_f("info string engine " + self.engineFileNames[index] + " says:")
             print_f(info)
             # only store main pv
-            if 'multipv 1' in info:
+            if 'multipv 1' in info or 'multi ' not in info:
                 self._info[index] = info
 
         elif 'bestmove' in info:
