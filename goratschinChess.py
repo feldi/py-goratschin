@@ -256,7 +256,6 @@ class GoratschinChess:
                 self._info[index] = info
 
         elif 'bestmove' in info:
-            emit(info)
             self._decide(index)       
                         
     def _decide(self, index):
@@ -433,7 +432,7 @@ class GoratschinChess:
             emit(e)
 
         # show the board
-        # printAndFlush(self.board)
+        # emit(self.board)
 
     # prints stats on how often was listened to boss and how often to counselor
     def _printStats(self):
