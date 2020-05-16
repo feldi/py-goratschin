@@ -487,16 +487,16 @@ def get_win_draw_loss_percentages(pawn_value):
 # from lc0_analyzer-extras
 
 def q2cp(q):
-    # return 290.680623072 * math.tan(1.548090806 * q) / 100.0
+    return 290.680623072 * math.tan(1.548090806 * q) / 100.0
 
     # New formula is cp = 90 × tan(1.5637541897 × q)
-    return 90 * math.tan(1.5637541897 * q)
+    # return 90 * math.tan(1.5637541897 * q)
 
 def cp2q(cp):
-    # return math.atan(cp*100.0/290.680623072)/1.548090806
+    return math.atan(cp*100.0/290.680623072)/1.548090806
 
     # New formula is cp = 90 × tan(1.5637541897 × q)
-    return math.atan(cp/90)/1.5637541897
+    # return math.atan(cp/90)/1.5637541897
 
 class EngineOutputHandler(threading.Thread):
     def __init__(self, p, index, outer_class):
