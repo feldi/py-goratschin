@@ -59,18 +59,18 @@ class GoratschinChess:
         for i in range(0, len(self._engines)):
             try:
                 engpath = os.path.join(self.engineFolder, self.engineFileNames[i])
-                p = subprocess.Popen(engpath, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
-                self._engines[i] = p
+                proc = subprocess.Popen(engpath, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+                self._engines[i] = proc
 
                 # start a stdout handler thread for each engine process
-                eoh = EngineOutputHandler(p, i, self)
+                eoh = EngineOutputHandler(proc, i, self)
                 eoh.start()
 
                 engineName = self.engineFileNames[i]  
                 if i == 0:
-                    emit_and_log("info string started engine 0 - " + engineName + " as boss")
+                    emit_and_log("info string started engine 0 as boss      (" + engineName + ")")
                 else:
-                    emit_and_log("info string started engine 1 - " + engineName + " as counselor")
+                    emit_and_log("info string started engine 1 as counselor (" + engineName + ")")
                 
             except Exception as e:
                 sys.stderr.write(str(e))
@@ -87,7 +87,7 @@ class GoratschinChess:
         # start the main program loop
         self._mainloop()
 
-    # Main program loop. It keep waiting for input after a command is finished
+    # Main program loop. It keeps waiting for input after a command is finished
     def _mainloop(self):
         exitFlag = False
         while not exitFlag:
@@ -190,6 +190,11 @@ class GoratschinChess:
                 print("Bye.")
                 log('Exiting GoratschinChess')
                 exitFlag = True
+                
+            elif userCommand.startswith("mpv"):  
+                parts = userCommand.split(" ")
+                self.send_command_to_engines("setoption name MultiPV value " + parts[1])
+                emit_and_log("setting multipv to " + parts[1])
 
             # special tests ...
 
@@ -203,11 +208,6 @@ class GoratschinChess:
                  
             elif userCommand.startswith("tb"):  
                 self.send_command_to_engines("setoption name SyzygyPath value D:/chess/tb-master/tb ")
-
-            elif userCommand.startswith("mpv"):  
-                parts = userCommand.split(" ")
-                self.send_command_to_engines("setoption name MultiPV value " + parts[1])
-                emit_and_log("setting multipv to " + parts[1])
                     
             elif userCommand.startswith("mw3"): 
                 self._handle_position("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
@@ -227,6 +227,7 @@ class GoratschinChess:
            engine.stdin.write(cmd + "\n")
            engine.stdin.flush()
 
+    # Callback handler called from EngineOutputHandler loop
     def _check_result(self, index, info):
 
         if self._canceled is True:
@@ -252,12 +253,13 @@ class GoratschinChess:
             emit(info)
             # only store main pv
             # since v0.25.x lc0 doesn't emit 'multipv 1' anymore...
-            if ('multipv 1' in info) or ('multi' not in info):
+            if ('multipv 1' in info) or ('multipv' not in info):
                 self._info[index] = info
 
         elif 'bestmove' in info:
             self._decide(index)       
-                        
+                   
+    # called when 'bestmove' received from any engine               
     def _decide(self, index):
 
         if self._canceled is True:
@@ -306,27 +308,15 @@ class GoratschinChess:
             
         self._scores_white[index] = cpWhite
 
-        log("info string final line " + engineName + ": " + info)
-        log("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
+        # emit_and_log("info string final line " + engineName + ": " + info)
+        emit_and_log("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
 
         # set the move in the found moves
         self._moves[index] = engineMove
-        
-#         if score.is_mate():
-#             if index == boss:
-#                 emit_and_log("info string boss detected mate, stop")
-#                 self.listenedTo[boss] += 1
-#                 bestMove = self._moves[boss]
-#             else:
-#                 emit_and_log("info string counselor detected mate, stop")
-#                 self.listenedTo[counselor] += 1
-#                 bestMove = self._moves[counselor]
-#             for info in self._results[index]: 
-#                 info.stop()
             
         # if all engines are done, and they agree on a move, do that move
         if self._moves[boss] is not None and self._moves[boss] == self._moves[counselor]:
-            emit_and_log("info string boss and counselor agree, listening to boss")
+            emit_and_log("info string listening to boss: boss and counselor agree")
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
@@ -339,36 +329,33 @@ class GoratschinChess:
         # if counselor is much better than boss, do counselor's move
         elif self._moves[boss] is not None and self._moves[counselor] is not None:
             diff = self._scores[counselor] - self._scores[boss]
+            emit_and_log("info string final results - boss: bm " +  str(self._moves[boss]) + " sc " + str(self._scores[boss])
+                + " - counselor: bm " + str(self._moves[counselor]) + " sc " + str(self._scores[counselor])
+                + " diff: {:2.2f}".format(diff))
             if diff >= self.score_margin:
-                emit_and_log("info string listening to counselor; which is stronger by {:2.2f}".format(diff))
+                emit_and_log("info string listening to counselor: which is stronger by {:2.2f}".format(diff))
                 self.listenedTo[counselor] += 1
                 bestMove = self._moves[counselor]
                 emit_and_log(self._info[counselor])
             elif diff > 0:
-                emit_and_log("info string listening to boss; counselor is stronger, but not enough, only {:2.2f}".format(diff))
+                emit_and_log("info string listening to boss: counselor is stronger, but not enough, only {:2.2f}".format(diff))
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
                 emit_and_log(self._info[boss])
             else:
-                emit_and_log("info string listening to boss; counselor is not stronger")
+                emit_and_log("info string listening to boss: counselor is not stronger")
                 self.listenedTo[boss] += 1
                 bestMove = self._moves[boss]
                 emit_and_log(self._info[boss])
-
-        # all engines are done and they dont agree. Listen to boss
-        elif None not in self._moves:
-            emit_and_log("info string listening to boss, engines dont agree")
-            self.listenedTo[boss] += 1
-            bestMove = self._moves[boss]
-            emit_and_log(self._info[boss])
-            
+           
         # we dont know our best move yet
         else:
-            emit_and_log("info string dont know best move yet")
+            emit_and_log("info string dont know our best move yet")
             return
 
+        # now we have our best move
+        
         self._printStats()
-
         self._canceled = True
 
         # stop remaining engines
@@ -437,7 +424,7 @@ class GoratschinChess:
     # prints stats on how often was listened to boss and how often to counselor
     def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
-        emit_and_log("info string Boss  best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
+        emit_and_log("info string Boss      best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
                        + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
         winCounselor, drawCounselor, lossCounselor = get_win_draw_loss_percentages(self._scores_white[1])
         emit_and_log("info string Counselor best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
@@ -490,25 +477,30 @@ def q2cp(q):
     return 290.680623072 * math.tan(1.548090806 * q) / 100.0
 
     # New formula is cp = 90 × tan(1.5637541897 × q)
+    # doesnt work well here ?!
     # return 90 * math.tan(1.5637541897 * q)
 
 def cp2q(cp):
     return math.atan(cp*100.0/290.680623072)/1.548090806
 
-    # New formula is cp = 90 × tan(1.5637541897 × q)
+    # New formula is cp = 90 × tan(1.5637541897 × q), inverse:
     # return math.atan(cp/90)/1.5637541897
+    # doesnt work well here ?!
 
 class EngineOutputHandler(threading.Thread):
-    def __init__(self, p, index, outer_class):
+    def __init__(self, proc, index, outer_class):
         threading.Thread.__init__(self)
-        self.p = p
+        self.proc = proc
         self.index = index
         self.outer_class = outer_class
         
     def run(self):
-        while self.p.poll() == None:
+        while self.proc.poll() == None:
             # emit("waiting for info...")
-            info = self.p.stdout.readline().rstrip()
+            info = self.proc.stdout.readline().rstrip()
             # emit("Got info: '" + info + "'")
+            
+            # call back
             self.outer_class._check_result(self.index, info)
+            
             time.sleep(0.01)
