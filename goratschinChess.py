@@ -26,6 +26,7 @@ class GoratschinChess:
         
     # The current infos
     _info = [None, None]
+    _pos = "position startpos"
 
     # The current score of move decided by the engine. None when it doesn't know yet
     _scores = [None, None]
@@ -54,7 +55,7 @@ class GoratschinChess:
         log('Starting GoratschinChess')
         emit_and_log("GoratschinChess 1.1 by P. Feldtmann based on CombiChess by T. Friederich")
         log('Margin is {:2.2f}'.format(self.score_margin))
-
+        self.init_infos()
         # first start the engines
         for i in range(0, len(self._engines)):
             try:
@@ -104,7 +105,9 @@ class GoratschinChess:
                 emit("uciok")
 
             elif userCommand == "ucinewgame":
+                self.init_infos()
                 self.send_command_to_engines(userCommand)
+                log("Starting new game.")
 
             elif userCommand == "isready":
                 self.send_command_to_engines(userCommand)
@@ -173,15 +176,19 @@ class GoratschinChess:
                     engineCommand += " infinite " 
 
                 self.send_command_to_engines(engineCommand)
-                emit_and_log("info string started analysis with '" + engineCommand + "'")
+                
+                log("Position fen " + self.board.fen())
+                log("Started analysis with '" + engineCommand + "'")
 
             elif userCommand == "stop":
                 self.send_command_to_engines("stop")
                 emit_and_log("info string stopping analysis ")
                 
             elif userCommand.startswith("position"):
+                self._pos = userCommand
                 self._handle_position(userCommand)
                 self.send_command_to_engines(userCommand)
+                log("Position " + userCommand)
 
             elif userCommand == "quit":
                 self.send_command_to_engines(userCommand)
@@ -198,23 +205,27 @@ class GoratschinChess:
 
             # special tests ...
 
-            elif userCommand.startswith("endg"):   
-                self._handle_position("position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7" )
+            elif userCommand.startswith("endg"):  
+                self._pos = "position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7"            
+                self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
                 
             elif userCommand.startswith("bdg"):   
-                self._handle_position("position fen rn1qkb1r/ppp1pppp/8/5b2/3Pn3/2N5/PPP3PP/R1BQKBNR w KQkq - 0 6" )
+                self._pos = "position fen rn1qkb1r/ppp1pppp/8/5b2/3Pn3/2N5/PPP3PP/R1BQKBNR w KQkq - 0 6"
+                self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
                  
             elif userCommand.startswith("tb"):  
                 self.send_command_to_engines("setoption name SyzygyPath value D:/chess/tb-master/tb ")
                     
             elif userCommand.startswith("mw3"): 
-                self._handle_position("position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" )
+                self._pos = "position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" 
+                self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
 
             elif userCommand.startswith("mb3"): 
-                self._handle_position("position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 " )
+                self._pos = "position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 "
+                self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
 
             else:
@@ -316,6 +327,8 @@ class GoratschinChess:
             
         # if all engines are done, and they agree on a move, do that move
         if self._moves[boss] is not None and self._moves[boss] == self._moves[counselor]:
+            diff = self._scores[counselor] - self._scores[boss]
+            self._printResult(boss, counselor, diff)
             emit_and_log("info string listening to boss: boss and counselor agree")
             self.listenedTo[boss] += 1
             self.agreed += 1
@@ -329,9 +342,7 @@ class GoratschinChess:
         # if counselor is much better than boss, do counselor's move
         elif self._moves[boss] is not None and self._moves[counselor] is not None:
             diff = self._scores[counselor] - self._scores[boss]
-            emit_and_log("info string final results - boss: bm " +  str(self._moves[boss]) + " sc " + str(self._scores[boss])
-                + " - counselor: bm " + str(self._moves[counselor]) + " sc " + str(self._scores[counselor])
-                + " diff: {:2.2f}".format(diff))
+            self._printResult(boss, counselor, diff)
             if diff >= self.score_margin:
                 emit_and_log("info string listening to counselor: which is stronger by {:2.2f}".format(diff))
                 self.listenedTo[counselor] += 1
@@ -361,7 +372,20 @@ class GoratschinChess:
         # stop remaining engines
         self.send_command_to_engines("stop")
 
-        emit_and_log("bestmove " + str(bestMove))
+        emit("bestmove " + str(bestMove))
+        
+        lan_bestmove = self.board.lan(chess.Move.from_uci(bestMove))
+
+        logtext = "Move: " + str(self.board.fullmove_number) + ". "
+        if (self.board.turn == chess.BLACK):
+            logtext += "... "
+        logtext += lan_bestmove
+        log(logtext)
+
+    # initialize infos
+    def init_infos(self):
+        self.listenedTo = [0, 0]
+        self.agreed = 0
 
     # inverse of chess.emgine.parse_uci_info
     # make uci info string from dictionary
@@ -402,7 +426,7 @@ class GoratschinChess:
                     fen, moves = " ".join(rest[:6]), rest[7:]
                     self.board.set_fen(fen)
                     for move in moves:
-                        emit("Adding " + move + " to stack")
+                        # emit("Adding " + move + " to stack")
                         self.board.push_uci(move)
                 else:
                     self.board.set_fen(rest)
@@ -410,7 +434,7 @@ class GoratschinChess:
             elif words[1] == "startpos":
                 self.board.reset()
                 for move in words[3:]:  # skip the first two words : 'position' and 'startpos'
-                    emit("Adding " + move + " to stack")
+                    # emit("Adding " + move + " to stack")
                     self.board.push_uci(move)
             else:
                 emit("unknown position type")
@@ -420,6 +444,12 @@ class GoratschinChess:
 
         # show the board
         # emit(self.board)
+
+    # prints results of both engines
+    def _printResult(self, boss, counselor, diff):
+          emit_and_log("info string final results - boss: bm " +  str(self._moves[boss]) + " sc " + str(self._scores[boss])
+                + " - counselor: bm " + str(self._moves[counselor]) + " sc " + str(self._scores[counselor])
+                + " diff: {:2.2f}".format(diff))
 
     # prints stats on how often was listened to boss and how often to counselor
     def _printStats(self):
