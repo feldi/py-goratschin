@@ -9,23 +9,28 @@ import logging
 
 import chess.engine
 
+name = "GoratschinChess"
+version = "1.2"
+fullname = name + '-' + version
+author = "P. Feldtmann"
+
 logger = logging.getLogger("goratschinChess")  
 
 # This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
-# Please go to goratschinLauncher.py This file also lets you change what engines GoratschinChess uses.
+# Please go to goratschinLauncher.py That file also lets you change what engines GoratschinChess uses.
 class GoratschinChess:
-    # after a stop command, ignore the finish callback. See onFinished.
+    # after a stop command, ignore the finish callback. See _checkResult.
     _canceled = False
 
     # the pythonChess engine objects, loaded from the filePath and fileName
     _engines = [None, None]
-    _results = [None, None]
 
     # The current move decided by the engine. None when it doesn't know yet
     _moves = [None, None]
         
     # The current infos
     _info = [None, None]
+
     _pos = "position startpos"
 
     # The current score of move decided by the engine. None when it doesn't know yet
@@ -35,7 +40,8 @@ class GoratschinChess:
     # current board status, probably received from UCI position commands
     board = chess.Board()
 
-    # Statistics for how often is listened to each engine.
+    # Statistics for how often we listened to each engine, 
+    # and how often the engines agreed on a move
     listenedTo = [0, 0]
     agreed = 0
 
@@ -46,14 +52,20 @@ class GoratschinChess:
     # Margin in centipawns of which the counselor's eval must be better than the boss.
     score_margin = None
 
+    # time control management
+    # TODO get factor flexible from parameter?
+    tcm_factor = 2 / 3   
+
+
     def __init__(self, engineLocation, engineNames, margin):
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
-        self.score_margin = margin / 100 # in centipawns, default: 0.5
+        self.score_margin = margin / 100 # given in centipawns, default: 50
+
 
     def start(self):
-        log('Starting GoratschinChess')
-        emit_and_log("GoratschinChess 1.1 by P. Feldtmann based on CombiChess by T. Friederich")
+        log('Starting ' + fullname)
+        emit_and_log(fullname + " by " + author + " based on CombiChess by T. Friederich")
         log('Margin is {:2.2f}'.format(self.score_margin))
         self.init_infos()
         # first start the engines
@@ -81,12 +93,9 @@ class GoratschinChess:
                 sys.stderr.write("To do this, call GoratschinLauncher.py with argument -e or --enginePath.\n")
                 sys.exit()
 
-        # tell the engines to init and start a new game
-        # self.send_command_to_engines("uci")
-        # self.send_command_to_engines("ucinewgame")
-
-        # start the main program loop
+        # enter the main program loop
         self._mainloop()
+
 
     # Main program loop. It keeps waiting for input after a command is finished
     def _mainloop(self):
@@ -98,8 +107,8 @@ class GoratschinChess:
             # log("info string cmd: " + userCommand)
             
             if userCommand == "uci":
-                emit("id name GoratschinChess")
-                emit("id author Peter Feldtmann")
+                emit("id name " + fullname)
+                emit("id author " + author)
                 self.send_command_to_engines("uci")
                 time.sleep(1) #  wait long enough?
                 emit("uciok")
@@ -111,7 +120,7 @@ class GoratschinChess:
 
             elif userCommand == "isready":
                 self.send_command_to_engines(userCommand)
-                emit("readyok")
+                emit_and_log("readyok")
 
             elif userCommand.startswith("setoption"):
                 self.send_command_to_engines(userCommand)
@@ -132,32 +141,31 @@ class GoratschinChess:
                 engineCommand = "go"
 
                 # do a little time control management
-                factor = 2 / 3
 
                 if cmds.get("wtime") is not None:
                     if self.board.turn:  # WHITE to move
-                        white_clock = str(int(int(cmds.get("wtime")) * factor))
+                        white_clock = str(int(int(cmds.get("wtime")) * tcm_factor))
                         engineCommand += " wtime " + white_clock 
                     else:
                         engineCommand += " wtime " + cmds.get("wtime")
 
                 if cmds.get("btime") is not None:
                     if not(self.board.turn):  # BLACK to move
-                         black_clock = str(int(int(cmds.get("btime")) * factor))  
+                         black_clock = str(int(int(cmds.get("btime")) * tcm_factor))  
                          engineCommand += " btime " + black_clock 
                     else:
                          engineCommand += " btime " + cmds.get("btime") 
 
                 if cmds.get("winc") is not None:  
                     if self.board.turn:  # WHITE to move
-                        white_inc = str(int(int(cmds.get("winc")) * factor))  
+                        white_inc = str(int(int(cmds.get("winc")) * tcm_factor))  
                         engineCommand += " winc " + white_inc 
                     else:
                         engineCommand += " winc " + cmds.get("winc") 
 
                 if cmds.get("binc") is not None:
                     if not(self.board.turn):  # BLACK to move
-                        black_inc = str(int(int(cmds.get("binc")) * factor))
+                        black_inc = str(int(int(cmds.get("binc")) * tcm_factor))
                         engineCommand += " binc " + black_inc 
                     else:
                         engineCommand += " binc " + cmds.get("binc") 
@@ -182,13 +190,13 @@ class GoratschinChess:
 
             elif userCommand == "stop":
                 self.send_command_to_engines("stop")
-                emit_and_log("info string stopping analysis ")
+                emit_and_log("info string stopped analysis")
                 
             elif userCommand.startswith("position"):
                 self._pos = userCommand
                 self._handle_position(userCommand)
                 self.send_command_to_engines(userCommand)
-                log("Position " + userCommand)
+                # log("Position " + userCommand)
 
             elif userCommand == "quit":
                 self.send_command_to_engines(userCommand)
@@ -198,31 +206,38 @@ class GoratschinChess:
                 log('Exiting GoratschinChess')
                 exitFlag = True
                 
+            # set multi PV mode
             elif userCommand.startswith("mpv"):  
                 parts = userCommand.split(" ")
-                self.send_command_to_engines("setoption name MultiPV value " + parts[1])
-                emit_and_log("setting multipv to " + parts[1])
+                mpv_mode = parts[1]
+                self.send_command_to_engines("setoption name MultiPV value " + mpv_mode)
+                emit_and_log("setting multi pv mode to " + mpv_mode)
 
             # special tests ...
 
+            # end game study
             elif userCommand.startswith("endg"):  
                 self._pos = "position fen 4k3/8/8/8/8/8/4P3/4K3 w - - 0 1 moves e1f2 e8e7"            
                 self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
                 
+            # the BDG...
             elif userCommand.startswith("bdg"):   
                 self._pos = "position fen rn1qkb1r/ppp1pppp/8/5b2/3Pn3/2N5/PPP3PP/R1BQKBNR w KQkq - 0 6"
                 self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
                  
+            # "My" tabel base setup...
             elif userCommand.startswith("tb"):  
                 self.send_command_to_engines("setoption name SyzygyPath value D:/chess/tb-master/tb ")
                     
+            # white mates in 3 moves
             elif userCommand.startswith("mw3"): 
                 self._pos = "position fen " + "k7/8/8/3K4/8/8/8/7R w - - 4 1" 
                 self._handle_position(self._pos)
                 self.send_command_to_engines("position fen " + self.board.fen())
 
+             # black mates in 3 moves
             elif userCommand.startswith("mb3"): 
                 self._pos = "position fen " + "r7/8/8/8/4k3/8/8/7K b - - 0 1 "
                 self._handle_position(self._pos)
@@ -233,10 +248,12 @@ class GoratschinChess:
 
             time.sleep(0.1)
 
+
     def send_command_to_engines(self, cmd):
         for engine in self._engines:
            engine.stdin.write(cmd + "\n")
            engine.stdin.flush()
+
 
     # Callback handler called from EngineOutputHandler loop
     def _check_result(self, index, info):
@@ -270,6 +287,7 @@ class GoratschinChess:
         elif 'bestmove' in info:
             self._decide(index)       
                    
+
     # called when 'bestmove' received from any engine               
     def _decide(self, index):
 
@@ -278,6 +296,8 @@ class GoratschinChess:
 
         boss = 0
         counselor = 1
+        decider = boss
+               
         info = self._info[index]
         parts = info.split()
      
@@ -300,9 +320,9 @@ class GoratschinChess:
             mate_moves= int(parts[score_start + 2])
             emit("info string mate detected in " + str(mate_moves) + " moves")
             if mate_moves > 0:
-                cp = 30000 - (mate_moves * 10 )
+                cp = 30000 - (mate_moves * 10 )  # we do mate
             else:
-                cp = -30000 + (mate_moves * 10 )
+                cp = -30000 + (mate_moves * 10 ) # we are mated
         else:
             cp = int(parts[score_start + 2])
             
@@ -316,11 +336,10 @@ class GoratschinChess:
         cpWhite = cp
         if not(self.board.turn):  # BLACK to move
             cpWhite = -cpWhite
-            
         self._scores_white[index] = cpWhite
 
         # emit_and_log("info string final line " + engineName + ": " + info)
-        emit_and_log("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cpWhite))
+        emit_and_log("info string final eval " + engineName + ": bm " + str(engineMove) + ", sc " + str(cp))
 
         # set the move in the found moves
         self._moves[index] = engineMove
@@ -335,9 +354,9 @@ class GoratschinChess:
             bestMove = self._moves[boss]
             diff = self._scores[counselor] - self._scores[boss]
             if diff > 0:
-                emit_and_log(self._info[counselor])
+                decider = counselor
             else:
-                emit_and_log(self._info[boss])
+                decider = boss
 
         # if counselor is much better than boss, do counselor's move
         elif self._moves[boss] is not None and self._moves[counselor] is not None:
@@ -345,47 +364,51 @@ class GoratschinChess:
             self._printResult(boss, counselor, diff)
             if diff >= self.score_margin:
                 emit_and_log("info string listening to counselor: which is stronger by {:2.2f}".format(diff))
-                self.listenedTo[counselor] += 1
-                bestMove = self._moves[counselor]
-                emit_and_log(self._info[counselor])
+                decider = counselor
             elif diff > 0:
                 emit_and_log("info string listening to boss: counselor is stronger, but not enough, only {:2.2f}".format(diff))
-                self.listenedTo[boss] += 1
-                bestMove = self._moves[boss]
-                emit_and_log(self._info[boss])
+                decider = boss
             else:
                 emit_and_log("info string listening to boss: counselor is not stronger")
-                self.listenedTo[boss] += 1
-                bestMove = self._moves[boss]
-                emit_and_log(self._info[boss])
-           
-        # we dont know our best move yet
+                decider = boss
+                           
+            self.listenedTo[decider] += 1
+            bestMove = self._moves[decider]
+                    
+        # we dont know our best move yet!
         else:
             emit_and_log("info string dont know our best move yet")
             return
 
-        # now we have our best move
-        
-        self._printStats()
-        self._canceled = True
 
-        # stop remaining engines
+        # now we have our best move!
+                                    
+        # stop all engines
         self.send_command_to_engines("stop")
-
+        self._canceled = True
+        
+        # send final info to GUI
+        emit_and_log(self._info[decider])
+        
+        # send bestmove result to GUI
         emit("bestmove " + str(bestMove))
         
+        # pretty logging of bestmove
         lan_bestmove = self.board.lan(chess.Move.from_uci(bestMove))
-
         logtext = "Move: " + str(self.board.fullmove_number) + ". "
         if (self.board.turn == chess.BLACK):
             logtext += "... "
         logtext += lan_bestmove
         log(logtext)
+        
+        self._printStats()
+
 
     # initialize infos
     def init_infos(self):
         self.listenedTo = [0, 0]
         self.agreed = 0
+
 
     # inverse of chess.emgine.parse_uci_info
     # make uci info string from dictionary
@@ -411,6 +434,7 @@ class GoratschinChess:
                 ## log(i + " is " + type(j).__name__)
         
         return ' '.join(result) 
+
 
     # handle UCI position command
     def _handle_position(self, positionInput):
@@ -445,19 +469,21 @@ class GoratschinChess:
         # show the board
         # emit(self.board)
 
+
     # prints results of both engines
     def _printResult(self, boss, counselor, diff):
           emit_and_log("info string final results - boss: bm " +  str(self._moves[boss]) + " sc " + str(self._scores[boss])
                 + " - counselor: bm " + str(self._moves[counselor]) + " sc " + str(self._scores[counselor])
                 + " diff: {:2.2f}".format(diff))
 
+
     # prints stats on how often was listened to boss and how often to counselor
     def _printStats(self):
         winBoss, drawBoss, lossBoss = get_win_draw_loss_percentages(self._scores_white[0])
-        emit_and_log("info string Boss      best move: " + str(self._moves[0]) + " score: " + str(self._scores_white[0])
+        emit_and_log("info string Boss      best move: " + str(self._moves[0]) + " score: " + str(self._scores[0])
                        + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winBoss, drawBoss, lossBoss))
         winCounselor, drawCounselor, lossCounselor = get_win_draw_loss_percentages(self._scores_white[1])
-        emit_and_log("info string Counselor best move: " + str(self._moves[1]) + " score: " + str(self._scores_white[1])
+        emit_and_log("info string Counselor best move: " + str(self._moves[1]) + " score: " + str(self._scores[1])
                       + " white {:2.1f}% win, {:2.1f}% draw, {:2.1f}% loss".format(winCounselor, drawCounselor, lossCounselor))
         emit_and_log("info string listen stats [Boss, Counselor] " + str(self.listenedTo))
         totalSum = self.listenedTo[0] + self.listenedTo[1] 
@@ -474,9 +500,11 @@ class GoratschinChess:
 def emit(text):
     print(text, flush=True)
  
+
 # This function logs only 
 def log(text):
     logger.info(text)
+
 
 # This function prints and logs 
 def emit_and_log(text):
@@ -490,6 +518,7 @@ def get_from_info(info, item):
     except ValueError:
         return None
   
+
 # get score as win/draw/loss percentages  
 def get_win_draw_loss_percentages(pawn_value):
     ## w = 1 / (1 + pow( 10, (- (abs(pawn_value) / 4)))) * 100 # - 50 + (abs(pawn_value) / 10)
@@ -501,6 +530,7 @@ def get_win_draw_loss_percentages(pawn_value):
     else:
         return 0, 100 - w, w
     
+
 # from lc0_analyzer-extras
 
 def q2cp(q):
@@ -510,6 +540,7 @@ def q2cp(q):
     # doesnt work well here ?!
     # return 90 * math.tan(1.5637541897 * q)
 
+
 def cp2q(cp):
     return math.atan(cp*100.0/290.680623072)/1.548090806
 
@@ -517,6 +548,8 @@ def cp2q(cp):
     # return math.atan(cp/90)/1.5637541897
     # doesnt work well here ?!
 
+
+# a stdout handler thread for an engine process
 class EngineOutputHandler(threading.Thread):
     def __init__(self, proc, index, outer_class):
         threading.Thread.__init__(self)
@@ -524,13 +557,14 @@ class EngineOutputHandler(threading.Thread):
         self.index = index
         self.outer_class = outer_class
         
+
     def run(self):
         while self.proc.poll() == None:
-            # emit("waiting for info...")
+            # log("waiting for info...")
             info = self.proc.stdout.readline().rstrip()
-            # emit("Got info: '" + info + "'")
+            # log("Got info: '" + info + "'")
             
             # call back
             self.outer_class._check_result(self.index, info)
             
-            time.sleep(0.01)
+            time.sleep(0.01) # needed for time conrtol management

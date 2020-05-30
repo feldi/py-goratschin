@@ -1,6 +1,8 @@
 cutechess-cli.exe ^
 -engine conf=GoratschinChess ^
+-engine conf=sf10 ^
 -engine conf=xiphos-0.6-w64 ^
+-engine conf="Ethereal 12.00-x64" ^
 -each proto=uci tc=80/300+1 ^
 -pgnout "match-%1.pgn" ^
 -event "match-%1" ^
@@ -12,8 +14,8 @@ cutechess-cli.exe ^
 -draw movenumber=50 movecount=5 score=8 ^
 -ratinginterval 1 ^
 -games 2 ^
--rounds 2 ^
+-rounds 4 ^
 -openings file="D:\chess\cutechess\Hert500.pgn" format=pgn order=random policy=round ^
--repeat
-rem -debug > cute_debug_log.txt
+-repeat ^
+-debug > cute_debug_log_%1.txt
 rem remis nach 100 zuegen -draw movenumber=100 movecount=1 score=9999
