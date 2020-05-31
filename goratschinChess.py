@@ -144,28 +144,28 @@ class GoratschinChess:
 
                 if cmds.get("wtime") is not None:
                     if self.board.turn:  # WHITE to move
-                        white_clock = str(int(int(cmds.get("wtime")) * tcm_factor))
+                        white_clock = str(int(int(cmds.get("wtime")) * self.tcm_factor))
                         engineCommand += " wtime " + white_clock 
                     else:
                         engineCommand += " wtime " + cmds.get("wtime")
 
                 if cmds.get("btime") is not None:
                     if not(self.board.turn):  # BLACK to move
-                         black_clock = str(int(int(cmds.get("btime")) * tcm_factor))  
+                         black_clock = str(int(int(cmds.get("btime")) * self.tcm_factor))  
                          engineCommand += " btime " + black_clock 
                     else:
                          engineCommand += " btime " + cmds.get("btime") 
 
                 if cmds.get("winc") is not None:  
                     if self.board.turn:  # WHITE to move
-                        white_inc = str(int(int(cmds.get("winc")) * tcm_factor))  
+                        white_inc = str(int(int(cmds.get("winc")) * self.tcm_factor))  
                         engineCommand += " winc " + white_inc 
                     else:
                         engineCommand += " winc " + cmds.get("winc") 
 
                 if cmds.get("binc") is not None:
                     if not(self.board.turn):  # BLACK to move
-                        black_inc = str(int(int(cmds.get("binc")) * tcm_factor))
+                        black_inc = str(int(int(cmds.get("binc")) * self.tcm_factor))
                         engineCommand += " binc " + black_inc 
                     else:
                         engineCommand += " binc " + cmds.get("binc") 
@@ -380,29 +380,31 @@ class GoratschinChess:
             emit_and_log("info string dont know our best move yet")
             return
 
-
         # now we have our best move!
                                     
         # stop all engines
         self.send_command_to_engines("stop")
-        self._canceled = True
+      
         
         # send final info to GUI
         emit_and_log(self._info[decider])
         
         # send bestmove result to GUI
-        emit("bestmove " + str(bestMove))
+        emit_and_log("bestmove " + str(bestMove))
         
         # pretty logging of bestmove
-        lan_bestmove = self.board.lan(chess.Move.from_uci(bestMove))
+        move = chess.Move.from_uci(bestMove)
+        san_bestmove = self.board.san(move)
+        lan_bestmove = self.board.lan(move)
         logtext = "Move: " + str(self.board.fullmove_number) + ". "
         if (self.board.turn == chess.BLACK):
             logtext += "... "
-        logtext += lan_bestmove
+        logtext += lan_bestmove + " (" + san_bestmove + ")"
         log(logtext)
         
         self._printStats()
 
+        self._canceled = True
 
     # initialize infos
     def init_infos(self):
@@ -567,4 +569,4 @@ class EngineOutputHandler(threading.Thread):
             # call back
             self.outer_class._check_result(self.index, info)
             
-            time.sleep(0.01) # needed for time conrtol management
+            time.sleep(0.01) # needed for time control management
