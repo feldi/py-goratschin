@@ -47,7 +47,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 *.pgn
-cute*.*
 
 # Translations
 *.mo
@@ -110,3 +109,7 @@ venv.bak/
 .pydevproject
 ./cpp_goratschin.exe
 /.vscode/
+
+# misc
+cute*.*
+game*.*

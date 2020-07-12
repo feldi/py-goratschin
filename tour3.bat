@@ -1,4 +1,5 @@
 cutechess-cli.exe ^
+-engine conf=GoratschinChess ^
 -engine conf=lc0 ^
 -engine conf=sf11 ^
 -each proto=uci tc=80/300+1 ^
@@ -12,7 +13,7 @@ cutechess-cli.exe ^
 -draw movenumber=50 movecount=5 score=8 ^
 -ratinginterval 1 ^
 -games 2 ^
--rounds 5 ^
+-rounds 6 ^
 -openings file="D:\chess\cutechess\Hert500.pgn" format=pgn order=random policy=round ^
 -repeat ^
 -debug > cute_debug_log_%1.txt

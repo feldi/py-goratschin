@@ -6,6 +6,8 @@ import threading
 import subprocess
 import time
 import logging
+import signal
+import atexit
 
 import chess.engine
 
@@ -15,6 +17,11 @@ fullname = name + '-' + version
 author = "P. Feldtmann"
 
 logger = logging.getLogger("goratschinChess")  
+
+      
+def handle_exit(sig, frame):
+     print("handle_exit " + str(sig))
+     raise(SystemExit)
 
 # This class contains the inner workings of goratschinChess. If you want to change its settings or start it then
 # Please go to goratschinLauncher.py That file also lets you change what engines GoratschinChess uses.
@@ -61,9 +68,16 @@ class GoratschinChess:
         self.engineFolder = engineLocation
         self.engineFileNames = engineNames
         self.score_margin = margin / 100 # given in centipawns, default: 50
-
-
+                   
+    def exit_handler(self):
+        log('GoratschinChess clean up...')
+        self.send_command_to_engines("quit")
+        log('GoratschinChess clean up: all engines quit.')
+          
     def start(self):
+        atexit.register(self.exit_handler)
+        signal.signal(signal.SIGTERM, handle_exit)
+        signal.signal(signal.SIGINT, handle_exit)
         log('Starting ' + fullname)
         emit_and_log(fullname + " by " + author + " based on CombiChess by T. Friederich")
         log('Margin is {:2.2f}'.format(self.score_margin))
@@ -104,7 +118,7 @@ class GoratschinChess:
 
             userCommand = input()
 
-            # log("info string cmd: " + userCommand)
+            log("Received  cmd: " + userCommand)
             
             if userCommand == "uci":
                 emit("id name " + fullname)
@@ -185,12 +199,13 @@ class GoratschinChess:
 
                 self.send_command_to_engines(engineCommand)
                 
-                log("Position fen " + self.board.fen())
+                log("Current position to analyze: " + self.board.fen())
                 log("Started analysis with '" + engineCommand + "'")
 
             elif userCommand == "stop":
                 self.send_command_to_engines("stop")
                 emit_and_log("info string stopped analysis")
+                time.sleep(3) #  wait long enough?
                 
             elif userCommand.startswith("position"):
                 self._pos = userCommand
@@ -252,7 +267,8 @@ class GoratschinChess:
     def send_command_to_engines(self, cmd):
         for engine in self._engines:
            engine.stdin.write(cmd + "\n")
-           engine.stdin.flush()
+           if cmd != "quit":
+                engine.stdin.flush()
 
 
     # Callback handler called from EngineOutputHandler loop
@@ -352,7 +368,6 @@ class GoratschinChess:
             self.listenedTo[boss] += 1
             self.agreed += 1
             bestMove = self._moves[boss]
-            diff = self._scores[counselor] - self._scores[boss]
             if diff > 0:
                 decider = counselor
             else:
@@ -384,8 +399,7 @@ class GoratschinChess:
                                     
         # stop all engines
         self.send_command_to_engines("stop")
-      
-        
+              
         # send final info to GUI
         emit_and_log(self._info[decider])
         
@@ -495,7 +509,7 @@ class GoratschinChess:
         agreedPercent = (float(self.agreed) / float(totalSum)) * 100.0
         emit_and_log("info string Boss and Counselor agreed so far " + str(self.agreed) + " times, {:2.1f} % ".format(agreedPercent))
         
- 
+  
 # UTILS
 
 # This function flushes stdout after writing so the UCI GUI sees it
